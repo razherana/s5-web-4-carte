@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('signalements', function (Blueprint $table) {
             $table->id();
-            $table->string('firebase_id')->unique();
+            $table->foreignId('user_id')->constrained('users')->onUpdate('no action')->onDelete('no action');
+            $table->string('firebase_uid')->unique();
             $table->decimal('lat', 10, 8);
             $table->decimal('lng', 11, 8);
             $table->string('date_signalement');

@@ -16,7 +16,8 @@ class Signalement extends Model
      * @var list<string>
      */
     protected $fillable = [
-        'firebase_id',
+        'user_id',
+        'firebase_uid',
         'lat',
         'lng',
         'date_signalement',
@@ -45,6 +46,14 @@ class Signalement extends Model
             'surface' => 'decimal:2',
             'budget' => 'decimal:2',
         ];
+    }
+
+    /**
+     * Get the user that created the signalement.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     /**

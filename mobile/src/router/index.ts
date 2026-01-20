@@ -4,7 +4,6 @@ import LoginPage from '@/views/LoginPage.vue';
 import RegisterPage from '@/views/RegisterPage.vue';
 import MapPage from '@/views/MapPage.vue';
 import MyReportsPage from '@/views/MyReportsPage.vue';
-import ReportingPage from '@/views/ReportingPage.vue';
 
 const routes = [
   {
@@ -31,11 +30,6 @@ const routes = [
     name: 'MyReports',
     component: MyReportsPage
     // meta: { requiresAuth: true }
-  }, 
-  {
-    path: '/reporting',
-    name: 'reporting',
-    component: ReportingPage
   }
 ];
 

@@ -1,73 +1,49 @@
 <template>
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>
-          <ion-icon :icon="statsChart" slot="start"></ion-icon>
-          Statistiques
-        </ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <ion-grid>
-          <ion-row>
-            <ion-col size="6">
-              <ion-card color="light">
-                <ion-card-content class="stat-item">
-                  <div class="stat-value">{{ stats?.totalReports || 0 }}</div>
-                  <div class="stat-label">Signalements</div>
-                </ion-card-content>
-              </ion-card>
-            </ion-col>
-            <ion-col size="6">
-              <ion-card color="light">
-                <ion-card-content class="stat-item">
-                  <div class="stat-value">{{ stats?.totalSurface || 0 }} m²</div>
-                  <div class="stat-label">Surface totale</div>
-                </ion-card-content>
-              </ion-card>
-            </ion-col>
-          </ion-row>
-          <ion-row>
-            <ion-col size="6">
-              <ion-card color="light">
-                <ion-card-content class="stat-item">
-                  <div class="stat-value">{{ (stats?.totalBudget || 0).toLocaleString() }} Ar</div>
-                  <div class="stat-label">Budget total</div>
-                </ion-card-content>
-              </ion-card>
-            </ion-col>
-            <ion-col size="6">
-              <ion-card color="light">
-                <ion-card-content class="stat-item">
-                  <div class="stat-value">{{ stats?.progress || 0 }}%</div>
-                  <div class="stat-label">Avancement</div>
-                </ion-card-content>
-              </ion-card>
-            </ion-col>
-          </ion-row>
-          <ion-row>
-            <ion-col size="12">
-              <ion-card>
-                <ion-card-header>
-                  <ion-card-subtitle>Répartition par statut</ion-card-subtitle>
-                </ion-card-header>
-                <ion-card-content>
-                  <div class="status-chart">
-                    <div class="status-item" v-for="item in statusStats" :key="item.status">
-                      <div class="status-bar" :style="{ width: item.percentage + '%', 'background-color': item.color }"></div>
-                      <div class="status-info">
-                        <span class="status-label">{{ item.label }}</span>
-                        <span class="status-count">{{ item.count }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </ion-card-content>
-              </ion-card>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-card-content>
-    </ion-card>
-  </template>
+  <ion-card class="stats-shell">
+    <ion-card-header>
+      <ion-card-title>
+        <ion-icon :icon="statsChart" slot="start"></ion-icon>
+        Aperçu des statistiques
+      </ion-card-title>
+      <ion-card-subtitle>Indicateurs clés des signalements</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="stats-grid">
+        <div class="metric">
+          <h3>{{ stats?.totalReports || 0 }}</h3>
+          <span>Signalements</span>
+        </div>
+        <div class="metric">
+          <h3>{{ stats?.totalSurface || 0 }} m²</h3>
+          <span>Surface totale</span>
+        </div>
+        <div class="metric">
+          <h3>{{ (stats?.totalBudget || 0).toLocaleString() }} Ar</h3>
+          <span>Budget estimé</span>
+        </div>
+        <div class="metric">
+          <h3>{{ stats?.progress || 0 }}%</h3>
+          <span>Avancement</span>
+        </div>
+      </div>
+
+      <div class="status-section">
+        <h4>Répartition par statut</h4>
+        <div class="status-list">
+          <div class="status-item" v-for="item in statusStats" :key="item.status">
+            <div class="status-header">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.count }}</strong>
+            </div>
+            <div class="status-track">
+              <span class="status-fill" :style="{ width: item.percentage + '%', backgroundColor: item.color }"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+</template>
   
   <script>
   import {
@@ -141,54 +117,74 @@
   </script>
   
   <style scoped>
-  .stat-item {
-    text-align: center;
-    padding: 10px;
+  .stats-shell {
+    border-radius: 22px;
+    box-shadow: var(--app-shadow-lg);
   }
-  
-  .stat-value {
-    font-size: 24px;
-    font-weight: bold;
-    color: var(--ion-color-primary);
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
   }
-  
-  .stat-label {
-    font-size: 14px;
+
+  .metric {
+    padding: 14px;
+    border-radius: 16px;
+    background: #f8fafc;
+    display: grid;
+    gap: 6px;
+  }
+
+  .metric h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #0f172a;
+  }
+
+  .metric span {
+    font-size: 12px;
     color: var(--ion-color-medium);
-    margin-top: 5px;
   }
-  
-  .status-chart {
-    margin-top: 10px;
+
+  .status-section {
+    margin-top: 20px;
   }
-  
+
+  .status-section h4 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: #0f172a;
+  }
+
+  .status-list {
+    display: grid;
+    gap: 12px;
+  }
+
   .status-item {
-    margin-bottom: 12px;
+    display: grid;
+    gap: 6px;
   }
-  
-  .status-bar {
-    height: 8px;
-    border-radius: 4px;
-    margin-bottom: 4px;
-    transition: width 0.3s ease;
-  }
-  
-  .status-info {
+
+  .status-header {
     display: flex;
     justify-content: space-between;
-    font-size: 14px;
-  }
-  
-  .status-label {
-    color: var(--ion-color-dark);
-  }
-  
-  .status-count {
+    font-size: 13px;
     color: var(--ion-color-medium);
-    font-weight: bold;
   }
-  
-  ion-card[color="light"] {
-    margin: 0;
+
+  .status-track {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+  }
+
+  .status-fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
   }
   </style>

@@ -84,11 +84,10 @@ export default {
             preferCanvas: true,
             zoomControl: true,
             attributionControl: true,
+            zoomAnimation: false,
+            fadeAnimation: false,
+            markerZoomAnimation: false,
           }).setView(antananarivoCoords, 13);
-
-          // Désactiver les animations pendant l'initialisation
-          map.value.options.zoomAnimation = false;
-          map.value.options.fadeAnimation = false;
 
           // Utiliser OpenStreetMap
           L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -102,13 +101,7 @@ export default {
             map.value.on("click", handleMapClick);
           }
 
-          // Activer les animations après l'initialisation
-          setTimeout(() => {
-            if (map.value) {
-              map.value.options.zoomAnimation = true;
-              map.value.options.fadeAnimation = true;
-            }
-          }, 500);
+          // Garder les animations désactivées pour éviter les erreurs Leaflet
 
           // Géolocalisation
           if (navigator.geolocation) {
@@ -170,6 +163,9 @@ export default {
     const handleMapClick = (e) => {
       if (!map.value || mapDestroyed.value) return;
 
+      map.value.stop();
+      map.value.closePopup();
+
       const { lat, lng } = e.latlng;
       clearTempMarker();
 
@@ -198,7 +194,9 @@ export default {
 
     const clearTempMarker = () => {
       if (tempMarker.value && map.value && !mapDestroyed.value) {
-        map.value.removeLayer(tempMarker.value);
+        if (tempMarker.value._map) {
+          map.value.removeLayer(tempMarker.value);
+        }
         tempMarker.value = null;
       }
     };
@@ -322,11 +320,16 @@ export default {
 
       // Réinitialiser la carte si la taille du conteneur change
       const resizeObserver = new ResizeObserver(() => {
-        if (map.value && mapInitialized.value && !mapDestroyed.value) {
+        if (
+          map.value &&
+          mapInitialized.value &&
+          !mapDestroyed.value &&
+          !map.value._animatingZoom
+        ) {
           // Attendre un peu pour éviter les recalculs trop fréquents
           setTimeout(() => {
-            if (map.value) {
-              map.value.invalidateSize();
+            if (map.value && !map.value._animatingZoom) {
+              map.value.invalidateSize({ animate: false });
             }
           }, 200);
         }
@@ -375,10 +378,18 @@ export default {
       }
     );
 
+    const stopMapAnimations = () => {
+      if (map.value && !mapDestroyed.value) {
+        map.value.stop();
+        map.value.closePopup();
+      }
+    };
+
     return {
       mapContainer,
       clearTempMarker,
       mapInitialized,
+      stopMapAnimations,
     };
   },
 };
@@ -403,9 +414,9 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
-  color: #666;
-  font-size: 16px;
+  background: linear-gradient(135deg, #e2e8f0 0%, #f8fafc 100%);
+  color: #0f172a;
+  font-size: 15px;
   z-index: 10;
 }
 

@@ -5,43 +5,62 @@
         <ion-buttons slot="start">
           <ion-menu-button></ion-menu-button>
         </ion-buttons>
-
-        <ion-title>Travaux Routiers - Antananarivo</ion-title>
+        <ion-title>Carte des signalements</ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="toggleStats">
+          <ion-button class="toolbar-pill" @click="toggleStats">
             <ion-icon :icon="statsChartOutline"></ion-icon>
           </ion-button>
-          <ion-button @click="goToMyReports" v-if="isLoggedIn">
+          <ion-button class="toolbar-pill" @click="goToMyReports" v-if="isLoggedIn">
             <ion-icon :icon="listOutline"></ion-icon>
           </ion-button>
-          <ion-button @click="handleLogout" v-if="isLoggedIn">
+          <ion-button class="toolbar-pill" @click="handleLogout" v-if="isLoggedIn">
             <ion-icon :icon="logOutOutline"></ion-icon>
           </ion-button>
-          <ion-button @click="goToLogin" v-else>
+          <ion-button class="toolbar-pill" @click="goToLogin" v-else>
             <ion-icon :icon="logInOutline"></ion-icon>
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content>
-      <!-- Statistiques (repliables) -->
-      <!-- <div v-if="showStats">
+    <ion-content class="map-page-content">
+      <section class="hero">
+        <div>
+          <h1>Signalez les anomalies routières</h1>
+          <p>Repérez les incidents, ajoutez un signalement et suivez les travaux en temps réel.</p>
+        </div>
+        <div class="hero-actions">
+          <ion-button v-if="!isLoggedIn" expand="block" @click="goToLogin">Se connecter</ion-button>
+          <ion-button v-if="isLoggedIn" expand="block" color="secondary" @click="goToMyReports">Voir mes signalements</ion-button>
+        </div>
+      </section>
+
+      <section class="stats-panel" v-if="showStats">
         <StatsCard :stats="statistics" :reports="reports" />
-      </div> -->
+      </section>
 
-      <!-- Carte -->
-      <div class="map-wrapper">
-        <MapComponent
-          :reports="filteredReports"
-          :can-report="isLoggedIn"
-          @add-report="handleAddReport"
-          @marker-clicked="handleMarkerClick"
-          ref="mapComponent"
-        />
-      </div>
+      <section class="map-section">
+        <div class="map-header">
+          <div>
+            <h2>Carte interactive</h2>
+            <p>Cliquez sur la carte pour ajouter un signalement.</p>
+          </div>
+          <div class="map-badges">
+            <span class="badge">{{ filteredReports.length }} signalements</span>
+            <span class="badge ghost">Antananarivo</span>
+          </div>
+        </div>
+        <div class="map-wrapper">
+          <MapComponent
+            :reports="filteredReports"
+            :can-report="isLoggedIn"
+            @add-report="handleAddReport"
+            @marker-clicked="handleMarkerClick"
+            ref="mapComponent"
+          />
+        </div>
+      </section>
 
-      <!-- Modal de signalement -->
       <ReportModal
         :is-open="reportModalOpen"
         :location="selectedLocation"
@@ -49,7 +68,6 @@
         @report-created="handleReportCreated"
       />
 
-      <!-- Loader -->
       <div v-if="loading" class="loader-overlay">
         <ion-spinner name="crescent"></ion-spinner>
       </div>
@@ -175,6 +193,10 @@ export default {
         return;
       }
 
+      if (mapComponent.value?.stopMapAnimations) {
+        mapComponent.value.stopMapAnimations();
+      }
+
       selectedLocation.value = location;
       reportModalOpen.value = true;
     };
@@ -266,12 +288,104 @@ export default {
 </script>
 
 <style scoped>
+.map-page-content {
+  --background: var(--app-background);
+}
+
+.hero {
+  margin: 16px;
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--app-gradient);
+  color: #ffffff;
+  box-shadow: var(--app-shadow-lg);
+  display: grid;
+  gap: 16px;
+}
+
+.hero h1 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.hero p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.hero-actions ion-button {
+  --background: #ffffff;
+  --color: #1e293b;
+}
+
+.stats-panel {
+  margin: 0 16px 16px;
+}
+
+.map-section {
+  margin: 0 16px 20px;
+  display: grid;
+  gap: 12px;
+}
+
+.map-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.map-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.map-header p {
+  margin: 0;
+  color: var(--ion-color-medium);
+  font-size: 13px;
+}
+
+.map-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badge {
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge.ghost {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.toolbar-pill {
+  --background: rgba(255, 255, 255, 0.2);
+  --color: #ffffff;
+  --border-radius: 999px;
+}
+
 .map-wrapper {
-  height: calc(
-    100vh - 56px
-  ); /* Hauteur totale moins la hauteur de la toolbar */
+  height: clamp(320px, 60vh, 520px);
   width: 100%;
   position: relative;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.map-wrapper :deep(.leaflet-container) {
+  border-radius: 18px;
+  box-shadow: var(--app-shadow-lg);
+  overflow: hidden;
 }
 
 .loader-overlay {
@@ -280,11 +394,12 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(15, 23, 42, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  backdrop-filter: blur(4px);
 }
 
 ion-spinner {

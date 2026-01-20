@@ -1,9 +1,11 @@
+/// <reference path="../shims-vue.d.ts" />
 // src/router/index.js
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import LoginPage from '@/views/LoginPage.vue';
 import RegisterPage from '@/views/RegisterPage.vue';
 import MapPage from '@/views/MapPage.vue';
 import MyReportsPage from '@/views/MyReportsPage.vue';
+import StatisticsPage from '@/views/StatisticsPage.vue';
 
 const routes = [
   {
@@ -30,6 +32,11 @@ const routes = [
     name: 'MyReports',
     component: MyReportsPage
     // meta: { requiresAuth: true }
+  },
+  {
+    path: '/statistics',
+    name: 'Statistics',
+    component: StatisticsPage
   }
 ];
 

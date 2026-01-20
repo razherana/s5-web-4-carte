@@ -1,8 +1,8 @@
 <template>
-  <ion-modal :is-open="isOpen" @ionModalDidDismiss="close">
+  <ion-modal class="report-modal" :is-open="isOpen" @ionModalDidDismiss="close">
     <ion-header>
       <ion-toolbar>
-        <ion-title>Nouveau Signalement</ion-title>
+        <ion-title>Créer un signalement</ion-title>
         <ion-buttons slot="end">
           <ion-button @click="close">Fermer</ion-button>
         </ion-buttons>
@@ -10,89 +10,78 @@
     </ion-header>
     <ion-content class="ion-padding">
       <form @submit.prevent="submitReport">
-        <ion-item>
-          <ion-label position="stacked">Description *</ion-label>
-          <ion-textarea
-            v-model="form.description"
-            rows="4"
-            placeholder="Décrivez le problème routier..."
-            required
-          ></ion-textarea>
-        </ion-item>
+        <div class="form-grid">
+          <ion-item>
+            <ion-label position="stacked">Description *</ion-label>
+            <ion-textarea
+              v-model="form.description"
+              rows="4"
+              placeholder="Décrivez la situation..."
+              required
+            ></ion-textarea>
+          </ion-item>
 
-        <ion-item>
-          <ion-label position="stacked">Type de problème *</ion-label>
-          <ion-select v-model="form.problemType" placeholder="Sélectionner">
-            <ion-select-option value="nid_poule"
-              >Nid de poule</ion-select-option
-            >
-            <ion-select-option value="fissure">Fissure</ion-select-option>
-            <ion-select-option value="affaissement"
-              >Affaissement</ion-select-option
-            >
-            <ion-select-option value="degradation"
-              >Dégradation</ion-select-option
-            >
-            <ion-select-option value="autre">Autre</ion-select-option>
-          </ion-select>
-        </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Type de problème *</ion-label>
+            <ion-select v-model="form.problemType" placeholder="Sélectionner">
+              <ion-select-option value="nid_poule">Nid de poule</ion-select-option>
+              <ion-select-option value="fissure">Fissure</ion-select-option>
+              <ion-select-option value="affaissement">Affaissement</ion-select-option>
+              <ion-select-option value="degradation">Dégradation</ion-select-option>
+              <ion-select-option value="autre">Autre</ion-select-option>
+            </ion-select>
+          </ion-item>
 
-        <ion-item>
-          <ion-label position="stacked">Surface estimée (m²)</ion-label>
-          <ion-input
-            v-model.number="form.surface"
-            type="number"
-            min="0"
-            step="0.1"
-            placeholder="Ex: 5.5"
-          ></ion-input>
-        </ion-item>
+          <div class="inline-grid">
+            <ion-item>
+              <ion-label position="stacked">Surface (m²)</ion-label>
+              <ion-input
+                v-model.number="form.surface"
+                type="number"
+                min="0"
+                step="0.1"
+                placeholder="5.5"
+              ></ion-input>
+            </ion-item>
 
-        <ion-item>
-          <ion-label position="stacked">Budget estimé (MGA)</ion-label>
-          <ion-input
-            v-model.number="form.budget"
-            type="number"
-            min="0"
-            step="1000"
-            placeholder="Ex: 500000"
-          ></ion-input>
-        </ion-item>
+            <ion-item>
+              <ion-label position="stacked">Budget (MGA)</ion-label>
+              <ion-input
+                v-model.number="form.budget"
+                type="number"
+                min="0"
+                step="1000"
+                placeholder="500000"
+              ></ion-input>
+            </ion-item>
+          </div>
 
-        <ion-item>
-          <ion-label position="stacked">Entreprise (optionnel)</ion-label>
-          <ion-input
-            v-model="form.company"
-            placeholder="Nom de l'entreprise"
-          ></ion-input>
-        </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Entreprise (optionnel)</ion-label>
+            <ion-input v-model="form.company" placeholder="Nom de l'entreprise"></ion-input>
+          </ion-item>
 
-        <ion-item>
-          <ion-label position="stacked">Coordonnées</ion-label>
-          <ion-input readonly :value="coordsText"></ion-input>
-        </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Coordonnées</ion-label>
+            <ion-input readonly :value="coordsText"></ion-input>
+          </ion-item>
 
-        <ion-item>
-          <ion-label position="stacked">Photo (optionnel)</ion-label>
-          <ion-button expand="block" @click="takePhoto">
-            <ion-icon :icon="camera" slot="start"></ion-icon>
-            Prendre une photo
-          </ion-button>
-        </ion-item>
-
-        <div v-if="form.photoUrl" class="photo-preview">
-          <img :src="form.photoUrl" alt="Photo du signalement" />
-          <ion-button color="danger" size="small" @click="removePhoto">
-            Supprimer
-          </ion-button>
+          <div class="photo-block">
+            <ion-button expand="block" fill="outline" @click="takePhoto">
+              <ion-icon :icon="camera" slot="start"></ion-icon>
+              Ajouter une photo
+            </ion-button>
+            <div v-if="form.photoUrl" class="photo-preview">
+              <img :src="form.photoUrl" alt="Photo du signalement" />
+              <ion-button color="danger" size="small" @click="removePhoto">
+                Supprimer
+              </ion-button>
+            </div>
+          </div>
         </div>
 
         <div class="modal-actions">
-          <ion-button
-            expand="block"
-            type="submit"
-            :disabled="submitting || !isFormValid"
-          >
+          <ion-button expand="block" type="submit" :disabled="submitting || !isFormValid">
             <ion-spinner v-if="submitting" slot="start"></ion-spinner>
             {{ submitting ? "Envoi en cours..." : "Envoyer le signalement" }}
           </ion-button>
@@ -319,6 +308,46 @@ export default {
 </script>
 
 <style scoped>
+:deep(.report-modal .modal-wrapper),
+:deep(.report-modal .ion-page) {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--app-shadow-xl);
+}
+
+:deep(.report-modal ion-toolbar) {
+  --background: var(--app-gradient);
+  --color: #ffffff;
+}
+
+:deep(.report-modal ion-content) {
+  --background: #ffffff;
+}
+
+.report-modal form {
+  display: grid;
+  gap: 16px;
+}
+
+.form-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.inline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+:deep(.report-modal ion-item) {
+  --background: #f8fafc;
+  --border-radius: 14px;
+  --border-color: transparent;
+  --padding-start: 12px;
+  --inner-padding-end: 12px;
+  box-shadow: var(--app-shadow-sm);
+}
 .photo-preview {
   margin: 20px 0;
   text-align: center;
@@ -336,12 +365,12 @@ export default {
 }
 
 ion-item {
-  --padding-start: 0;
-  --inner-padding-end: 0;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 
 ion-label {
-  margin-bottom: 8px !important;
+  margin-bottom: 6px !important;
+  font-weight: 600;
+  color: #0f172a;
 }
 </style>

@@ -12,7 +12,6 @@ Route::get('/', function () {
 Route::prefix('api/auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/firebase', [AuthController::class, 'firebaseAuth']);
 });
 
 // Protected auth routes

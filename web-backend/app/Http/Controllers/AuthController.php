@@ -47,9 +47,24 @@ class AuthController extends Controller
     }
 
     /**
-     * Login with email and password (local auth).
+     * Login with email/password or Firebase token.
+     * Automatically detects auth mode based on provided credentials.
      */
     public function login(Request $request): JsonResponse
+    {
+        // Check if Firebase token is provided
+        if ($request->has('firebase_token')) {
+            return $this->loginWithFirebase($request);
+        }
+
+        // Otherwise, use email/password
+        return $this->loginWithCredentials($request);
+    }
+
+    /**
+     * Login with email and password (local auth).
+     */
+    protected function loginWithCredentials(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'email' => 'required|email',
@@ -83,7 +98,7 @@ class AuthController extends Controller
      * Login/Register with Firebase token.
      * Creates local user if doesn't exist.
      */
-    public function firebaseAuth(Request $request): JsonResponse
+    protected function loginWithFirebase(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'firebase_token' => 'required|string',

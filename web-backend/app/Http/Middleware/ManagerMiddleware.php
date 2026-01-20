@@ -7,21 +7,30 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class AuthFirebaseMiddleware
+class ManagerMiddleware
 {
     /**
      * Handle an incoming request.
+     * Checks if the authenticated user has a 'manager' role.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Use Laravel's auth system with firebase guard
-        if (!Auth::guard('firebase')->check()) {
+        $user = Auth::user();
+
+        if (!$user) {
             return response()->json([
                 'error' => 'Unauthorized',
                 'message' => 'Authentication required'
             ], 401);
+        }
+
+        if ($user->role !== 'manager') {
+            return response()->json([
+                'error' => 'Forbidden',
+                'message' => 'Manager access required'
+            ], 403);
         }
 
         return $next($request);

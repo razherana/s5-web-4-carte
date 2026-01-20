@@ -14,7 +14,7 @@ return [
     */
 
     'defaults' => [
-        'guard' => env('AUTH_GUARD', 'web'),
+        'guard' => env('AUTH_GUARD', 'hybrid'),
         'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
     ],
 
@@ -38,6 +38,14 @@ return [
     'guards' => [
         'web' => [
             'driver' => 'session',
+            'provider' => 'users',
+        ],
+        'firebase' => [
+            'driver' => 'firebase',
+            'provider' => 'users',
+        ],
+        'hybrid' => [
+            'driver' => 'hybrid',
             'provider' => 'users',
         ],
     ],

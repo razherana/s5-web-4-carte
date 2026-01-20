@@ -24,6 +24,7 @@ class Signalement extends Model
         'surface',
         'budget',
         'entreprise_id',
+        'synced',
     ];
 
     /**

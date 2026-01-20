@@ -19,6 +19,8 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'firebase_uid',
+        'email',
+        'password',
         'role',
     ];
 
@@ -27,7 +29,9 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    protected $hidden = [];
+    protected $hidden = [
+        'password',
+    ];
 
     /**
      * Indicates if the model should be timestamped.
@@ -35,6 +39,18 @@ class User extends Authenticatable
      * @var bool
      */
     public $timestamps = false;
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'password' => 'hashed',
+        ];
+    }
 
     /**
      * Get the signalements created by the user.

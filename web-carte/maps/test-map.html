@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Carte OSM Offline - Antananarivo</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""/>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .info-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .status.connected {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .status.error {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        #map {
+            height: 600px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        .controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .controls button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        
+        .controls button:hover {
+            background: #2980b9;
+        }
+        
+        .example-markers {
+            margin-top: 10px;
+        }
+        
+        .legend {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        
+        .legend-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border-radius: 50%;
+        }
+        
+        .red { background: #e74c3c; }
+        .blue { background: #3498db; }
+        .green { background: #27ae60; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ Test Carte OSM Offline - Antananarivo</h1>
+        
+        <div class="info-box">
+            <p><strong>Serveur :</strong> <span id="server-url">http://localhost:8080</span></p>
+            <p><strong>Statut :</strong> <span id="status" class="status">Connexion...</span></p>
+            <p><strong>Centre :</strong> Antananarivo, Madagascar (-18.8792, 47.5079)</p>
+        </div>
+        
+        <div id="map"></div>
+        
+        <div class="controls">
+            <h3>🎮 Contrôles de Test</h3>
+            <button onclick="addExampleMarker('nid-de-poule')">➕ Ajouter Nid-de-poule</button>
+            <button onclick="addExampleMarker('fuite-eau')">➕ Ajouter Fuite d'eau</button>
+            <button onclick="addExampleMarker('eclairage')">➕ Ajouter Problème d'éclairage</button>
+            <button onclick="clearMarkers()">🗑️ Effacer les markers</button>
+            <button onclick="centerOnTana()">📍 Recentrer sur Tana</button>
+            
+            <div class="legend">
+                <h4>Légende des signalements :</h4>
+                <div class="legend-item">
+                    <div class="legend-icon red"></div>
+                    <span>🕳️ Nid-de-poule</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon blue"></div>
+                    <span>💧 Fuite d'eau</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-icon green"></div>
+                    <span>💡 Problème d'éclairage</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+    
+    <script>
+        // Configuration
+        const TILE_SERVER = 'http://localhost:8080/tile/{z}/{x}/{y}.png';
+        const TANA_CENTER = [-18.8792, 47.5079];
+        const TANA_BOUNDS = [[-18.95, 47.40], [-18.75, 47.65]];
+        const MADAGASCAR_BOUNDS = [[-26.0, 43.0], [-11.0, 51.0]];
+        const DEFAULT_ZOOM = 13;
+        
+        // Stocker les markers
+        let markers = [];
+        let map;
+        
+        // Initialiser la carte
+        function initMap() {
+            try {
+                // Créer la carte centrée sur Antananarivo
+                map = L.map('map', {
+                    minZoom: 6,
+                    maxZoom: 19,
+                    maxBounds: MADAGASCAR_BOUNDS,
+                    maxBoundsViscosity: 0.75
+                }).setView(TANA_CENTER, DEFAULT_ZOOM);
+                
+                // Ajouter la couche de tuiles OSM locale
+                const tileLayer = L.tileLayer(TILE_SERVER, {
+                    maxZoom: 19,
+                    minZoom: 6,
+                    attribution: '© OpenStreetMap contributors | Serveur local offline'
+                });
+                
+                tileLayer.addTo(map);
+                
+                // Vérifier la connexion au serveur
+                tileLayer.on('tileerror', function() {
+                    updateStatus('error', '❌ Erreur : Serveur non accessible');
+                });
+                
+                tileLayer.on('tileload', function() {
+                    updateStatus('connected', '✅ Connecté');
+                });
+                
+                // Forcer l’affichage autour de Tana (évite la vue monde)
+                map.fitBounds(TANA_BOUNDS, { animate: false });
+
+                // Ajouter un marker de test au centre
+                L.marker(TANA_CENTER)
+                    .addTo(map)
+                    .bindPopup('<b>Antananarivo</b><br>Centre-ville<br>Point de test')
+                    .openPopup();
+                
+                console.log('✅ Carte initialisée avec succès');
+            } catch (error) {
+                console.error('❌ Erreur lors de l\'initialisation :', error);
+                updateStatus('error', '❌ Erreur d\'initialisation');
+            }
+        }
+        
+        // Mettre à jour le statut
+        function updateStatus(type, message) {
+            const statusEl = document.getElementById('status');
+            statusEl.className = 'status ' + type;
+            statusEl.textContent = message;
+        }
+        
+        // Ajouter un marker d'exemple
+        function addExampleMarker(type) {
+            // Générer une position aléatoire autour de Tana
+            const lat = TANA_CENTER[0] + (Math.random() - 0.5) * 0.05;
+            const lng = TANA_CENTER[1] + (Math.random() - 0.5) * 0.05;
+            
+            let icon, title, description;
+            
+            switch(type) {
+                case 'nid-de-poule':
+                    icon = createCustomIcon('#e74c3c', '🕳️');
+                    title = 'Nid-de-poule';
+                    description = 'Route endommagée nécessitant réparation';
+                    break;
+                case 'fuite-eau':
+                    icon = createCustomIcon('#3498db', '💧');
+                    title = 'Fuite d\'eau';
+                    description = 'Canalisation défectueuse';
+                    break;
+                case 'eclairage':
+                    icon = createCustomIcon('#27ae60', '💡');
+                    title = 'Problème d\'éclairage';
+                    description = 'Lampadaire défectueux';
+                    break;
+            }
+            
+            const marker = L.marker([lat, lng], { icon: icon })
+                .addTo(map)
+                .bindPopup(`
+                    <b>${title}</b><br>
+                    ${description}<br>
+                    <small>Position: ${lat.toFixed(4)}, ${lng.toFixed(4)}</small>
+                `);
+            
+            markers.push(marker);
+            console.log(`✅ Marker ajouté : ${title} à [${lat}, ${lng}]`);
+        }
+        
+        // Créer une icône personnalisée
+        function createCustomIcon(color, emoji) {
+            return L.divIcon({
+                className: 'custom-icon',
+                html: `<div style="
+                    background: ${color};
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 18px;
+                    border: 2px solid white;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                ">${emoji}</div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15],
+                popupAnchor: [0, -15]
+            });
+        }
+        
+        // Effacer tous les markers
+        function clearMarkers() {
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            console.log('🗑️ Tous les markers ont été effacés');
+        }
+        
+        // Recentrer sur Tana
+        function centerOnTana() {
+            map.setView(TANA_CENTER, DEFAULT_ZOOM);
+            console.log('📍 Carte recentrée sur Antananarivo');
+        }
+        
+        // Initialiser au chargement
+        window.onload = initMap;
+    </script>
+</body>
+</html>

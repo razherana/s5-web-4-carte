@@ -1,0 +1,17 @@
+# Fichiers Docker et données volumineuses
+*.osm.pbf
+data/*.osm.pbf
+data/region.osm.pbf
+osm-data/
+
+# Logs Docker
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.tmp
+*~

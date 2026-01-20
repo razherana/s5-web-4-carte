@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  osm-tileserver:
+    image: overv/openstreetmap-tile-server
+    container_name: osm-tileserver
+    volumes:
+      - osm-data:/data/database/
+      - ./data/region.osm.pbf:/data/region.osm.pbf
+    ports:
+      - "8080:80"
+    environment:
+      - OSM2PGSQL_EXTRA_ARGS=-C 2048
+      - THREADS=4
+    command: run
+    shm_size: 2g
+
+volumes:
+  osm-data:

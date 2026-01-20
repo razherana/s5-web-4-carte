@@ -1,0 +1,7 @@
+{
+  "name": "road-mobile",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue-vite"
+}

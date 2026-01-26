@@ -1,0 +1,362 @@
+/* Global Design System Utilities */
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--app-font-sans);
+  background: var(--app-background);
+  color: var(--app-text-primary);
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
+}
+
+ion-content {
+  --background: transparent;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+/* Glass surfaces */
+.glass {
+  background: var(--app-glass-bg);
+  border: 1px solid var(--app-glass-border);
+  box-shadow: var(--app-glass-shadow);
+  backdrop-filter: blur(14px) saturate(120%);
+}
+
+.glass-strong {
+  background: var(--app-glass-bg-strong);
+  border: 1px solid var(--app-glass-border);
+  box-shadow: var(--app-shadow-lg);
+  backdrop-filter: blur(18px) saturate(130%);
+}
+
+.surface {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-shadow-sm);
+}
+
+.card {
+  border-radius: var(--app-radius-xl);
+  padding: var(--app-space-lg);
+}
+
+.section {
+  margin: var(--app-space-lg) 0;
+}
+
+.page-shell {
+  padding: clamp(16px, 4vw, 32px);
+  display: grid;
+  gap: var(--app-space-lg);
+}
+
+.page-header {
+  display: grid;
+  gap: var(--app-space-sm);
+}
+
+.page-title {
+  font-family: var(--app-font-display);
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  margin: 0;
+}
+
+.page-subtitle {
+  margin: 0;
+  color: var(--app-text-secondary);
+  font-size: 0.95rem;
+}
+
+.gradient-text {
+  color: var(--ion-color-primary);
+}
+
+/* Buttons */
+.btn-primary ion-button,
+.btn-secondary ion-button,
+.btn-ghost ion-button {
+  --border-radius: var(--app-radius-lg);
+  --padding-top: 16px;
+  --padding-bottom: 16px;
+  --padding-start: 24px;
+  --padding-end: 24px;
+  text-transform: none;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  transition: all 0.3s ease;
+}
+
+.btn-primary ion-button {
+  --background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  --color: #ffffff;
+  --box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+  font-size: 1rem;
+}
+
+.btn-primary ion-button:hover {
+  --box-shadow: 0 6px 24px rgba(37, 99, 235, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-secondary ion-button {
+  --background: rgba(255, 255, 255, 0.9);
+  --color: #0f172a;
+  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --border-color: rgba(148, 163, 184, 0.25);
+  --border-width: 1.5px;
+  backdrop-filter: blur(10px);
+  font-weight: 600;
+}
+
+.btn-secondary ion-button:hover {
+  --background: rgba(255, 255, 255, 1);
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.btn-ghost ion-button {
+  --background: transparent;
+  --color: #475569;
+  font-weight: 600;
+}
+
+.btn-ghost ion-button:hover {
+  --color: #0f172a;
+}
+
+/* Inputs */
+.input-field {
+  display: grid;
+  gap: var(--app-space-xs);
+}
+
+.input-field label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--app-text-tertiary);
+  font-weight: 700;
+}
+
+.input-shell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--app-radius-lg);
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  backdrop-filter: blur(8px) saturate(110%);
+  transition: all var(--app-transition-base);
+}
+
+.input-shell:focus-within {
+  border-color: rgba(37, 99, 235, 0.6);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.input-shell input,
+.input-shell textarea {
+  border: none;
+  background: transparent;
+  color: var(--app-text-primary);
+  width: 100%;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.badge {
+  padding: 6px 12px;
+  border-radius: var(--app-radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--app-border);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--app-radius-full);
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--app-text-primary);
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.divider-line {
+  height: 1px;
+  background: var(--app-divider);
+  opacity: 0.6;
+}
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.5s ease-out both;
+}
+
+.slide-up {
+  animation: slideUp 0.6s ease-out both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Layout helpers */
+.grid-auto {
+  display: grid;
+  gap: var(--app-space-md);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--app-space-sm);
+}
+
+.text-secondary {
+  color: #64748b !important;
+  font-weight: 500;
+}
+
+.text-tertiary {
+  color: #94a3b8 !important;
+  font-weight: 500;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 999px;
+}
+
+/* Modern Alert Styles with Glassmorphism */
+.modern-alert-glass {
+  --backdrop-opacity: 0.5;
+}
+
+.modern-alert-glass .alert-wrapper {
+  border-radius: var(--app-radius-xl);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(24px) saturate(140%);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+}
+
+.modern-alert-glass .alert-head {
+  padding: 24px 24px 16px;
+  background: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.modern-alert-glass .alert-title {
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-family: var(--app-font-display);
+}
+
+.modern-alert-glass .alert-message {
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  padding: 20px 24px;
+  font-weight: 500;
+}
+
+.modern-alert-glass .alert-button-group {
+  padding: 16px;
+  background: rgba(248, 250, 252, 0.8);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.modern-alert-glass .alert-button {
+  margin: 0;
+  height: 48px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-radius: var(--app-radius-lg);
+  transition: all 0.2s ease;
+}
+
+.modern-alert-glass .alert-button-cancel {
+  background: rgba(148, 163, 184, 0.15);
+  color: #475569;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.modern-alert-glass .alert-button-cancel:hover {
+  background: rgba(148, 163, 184, 0.25);
+  transform: translateY(-1px);
+}
+
+.modern-alert-glass .alert-button-confirm {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: white;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+  border: none;
+}
+
+.modern-alert-glass .alert-button-confirm:hover {
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+  transform: translateY(-2px);
+}
+
+.modern-alert-glass .alert-button:active {
+  transform: scale(0.98);
+}
+

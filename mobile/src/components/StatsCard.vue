@@ -1,11 +1,11 @@
 <template>
-  <ion-card class="stats-shell">
+  <ion-card class="stats-shell glass">
     <ion-card-header>
       <ion-card-title>
         <ion-icon :icon="statsChart" slot="start"></ion-icon>
-        Aperçu des statistiques
+        Tableau des indicateurs
       </ion-card-title>
-      <ion-card-subtitle>Indicateurs clés des signalements</ion-card-subtitle>
+      <ion-card-subtitle>Vision globale des signalements</ion-card-subtitle>
     </ion-card-header>
     <ion-card-content>
       <div class="stats-grid">
@@ -28,7 +28,10 @@
       </div>
 
       <div class="status-section">
-        <h4>Répartition par statut</h4>
+        <div class="section-header">
+          <h4>Répartition par statut</h4>
+          <span class="chip">{{ reports.length }} rapports</span>
+        </div>
         <div class="status-list">
           <div class="status-item" v-for="item in statusStats" :key="item.status">
             <div class="status-header">
@@ -52,9 +55,6 @@
     IonCardTitle,
     IonCardSubtitle,
     IonCardContent,
-    IonGrid,
-    IonRow,
-    IonCol,
     IonIcon
   } from '@ionic/vue';
   import { statsChart } from 'ionicons/icons';
@@ -71,9 +71,9 @@
           totalBudget: 0,
           progress: 0,
           statusCounts: {
-            new: 0,
-            in_progress: 0,
-            completed: 0
+            nouveau: 0,
+            en_cours: 0,
+            termine: 0
           }
         })
       },
@@ -86,16 +86,16 @@
       const statusStats = computed(() => {
         const total = props.reports?.length || 0;
         const statusInfo = [
-          { status: 'new', label: 'Nouveau', color: '#ff4444' },
-          { status: 'in_progress', label: 'En cours', color: '#ffbb33' },
-          { status: 'completed', label: 'Terminé', color: '#00C851' }
+          { status: 'nouveau', label: 'Nouveau', color: '#f97316' },
+          { status: 'en_cours', label: 'En cours', color: '#38bdf8' },
+          { status: 'termine', label: 'Terminé', color: '#22c55e' }
         ];
         
         // Utiliser l'opérateur de chaînage optionnel et des valeurs par défaut
         const statusCounts = props.stats?.statusCounts || {
-          new: 0,
-          in_progress: 0,
-          completed: 0
+          nouveau: 0,
+          en_cours: 0,
+          termine: 0
         };
         
         return statusInfo.map(info => {
@@ -118,73 +118,148 @@
   
   <style scoped>
   .stats-shell {
-    border-radius: 22px;
-    box-shadow: var(--app-shadow-lg);
+    border-radius: var(--app-radius-2xl);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(16px);
+  }
+
+  :deep(.stats-shell ion-card-header) {
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.7);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  }
+
+  :deep(.stats-shell ion-card-title) {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  :deep(.stats-shell ion-card-title ion-icon) {
+    font-size: 24px;
+    color: #2563eb;
+  }
+
+  :deep(.stats-shell ion-card-subtitle) {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 500;
+    margin-top: 4px;
   }
 
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--app-space-md);
   }
 
   .metric {
-    padding: 14px;
-    border-radius: 16px;
-    background: #f8fafc;
+    padding: 18px;
+    border-radius: var(--app-radius-lg);
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.25);
     display: grid;
-    gap: 6px;
+    gap: 8px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+  }
+
+  .metric:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.12);
+    border-color: rgba(37, 99, 235, 0.3);
   }
 
   .metric h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: 1.4rem;
+    font-weight: 800;
     color: #0f172a;
   }
 
   .metric span {
-    font-size: 12px;
-    color: var(--ion-color-medium);
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
   }
 
   .status-section {
-    margin-top: 20px;
+    margin-top: var(--app-space-lg);
+    padding-top: var(--app-space-lg);
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
   }
 
-  .status-section h4 {
-    margin: 0 0 12px;
-    font-size: 14px;
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--app-space-md);
+  }
+
+  .section-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
     color: #0f172a;
+  }
+
+  .chip {
+    padding: 6px 12px;
+    border-radius: var(--app-radius-full);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.08));
+    color: #2563eb;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 1px solid rgba(37, 99, 235, 0.2);
   }
 
   .status-list {
     display: grid;
-    gap: 12px;
+    gap: 14px;
   }
 
   .status-item {
     display: grid;
-    gap: 6px;
+    gap: 8px;
   }
 
   .status-header {
     display: flex;
     justify-content: space-between;
-    font-size: 13px;
-    color: var(--ion-color-medium);
+    font-size: 0.85rem;
+  }
+
+  .status-header span {
+    color: #475569;
+    font-weight: 600;
+  }
+
+  .status-header strong {
+    color: #0f172a;
+    font-weight: 700;
   }
 
   .status-track {
     width: 100%;
-    height: 10px;
+    height: 12px;
     border-radius: 999px;
-    background: #e2e8f0;
+    background: rgba(148, 163, 184, 0.2);
     overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
   }
 
   .status-fill {
     display: block;
     height: 100%;
     border-radius: 999px;
+    transition: width 0.6s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   }
   </style>

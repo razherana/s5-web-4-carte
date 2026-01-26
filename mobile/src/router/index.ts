@@ -6,6 +6,9 @@ import RegisterPage from '@/views/RegisterPage.vue';
 import MapPage from '@/views/MapPage.vue';
 import MyReportsPage from '@/views/MyReportsPage.vue';
 import StatisticsPage from '@/views/StatisticsPage.vue';
+import ProfilePage from '@/views/ProfilePage.vue';
+import SettingsPage from '@/views/SettingsPage.vue';
+import NotFoundPage from '@/views/NotFoundPage.vue';
 
 const routes = [
   {
@@ -30,13 +33,30 @@ const routes = [
   {
     path: '/my-reports',
     name: 'MyReports',
-    component: MyReportsPage
-    // meta: { requiresAuth: true }
+    component: MyReportsPage,
+    meta: { requiresAuth: true }
   },
   {
     path: '/statistics',
     name: 'Statistics',
     component: StatisticsPage
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: ProfilePage,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: SettingsPage,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: NotFoundPage
   }
 ];
 

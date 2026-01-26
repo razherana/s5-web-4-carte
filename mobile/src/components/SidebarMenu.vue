@@ -1,160 +1,119 @@
 <template>
-  <ion-menu side="start" content-id="main-content" class="modern-menu">
+  <ion-menu side="start" content-id="main-content" class="menu-shell">
     <ion-content>
-      <!-- Modern Header with Gradient -->
-      <div class="menu-header">
-        <div class="brand-section">
-          <div class="brand-logo">
-            <ion-icon :icon="navigateCircleOutline" class="brand-icon"></ion-icon>
+      <div class="menu-hero glass-strong">
+        <div class="brand-row">
+          <div class="brand-icon">
+            <ion-icon :icon="navigateCircleOutline"></ion-icon>
           </div>
-          <div class="brand-info">
-            <h1 class="brand-title">Road<span class="brand-accent">Watch</span></h1>
-            <p class="brand-subtitle">Antananarivo, Madagascar</p>
+          <div>
+            <h1>Road<span>Watch</span></h1>
+            <p>Antananarivo • Signalement intelligent</p>
           </div>
         </div>
 
-        <!-- User Profile Card -->
-        <div v-if="isLoggedIn" class="profile-card">
-          <div class="profile-avatar">
-            <div class="avatar-circle">
-              <span>{{ userInitials }}</span>
-            </div>
-            <div class="status-dot"></div>
+        <div class="profile-panel" :class="{ guest: !isLoggedIn }">
+          <div class="avatar">
+            <span>{{ userInitials }}</span>
           </div>
           <div class="profile-info">
-            <h2 class="profile-name">{{ currentUser?.displayName || 'Utilisateur' }}</h2>
-            <p class="profile-email">{{ currentUser?.email }}</p>
-          </div>
-        </div>
-
-        <!-- Guest State -->
-        <div v-else class="guest-card">
-          <div class="guest-icon">
-            <ion-icon :icon="personOutline"></ion-icon>
-          </div>
-          <div class="guest-content">
-            <h2>Bienvenue!</h2>
-            <p>Connectez-vous pour accéder à toutes les fonctionnalités</p>
+            <h2>{{ currentUser?.displayName || 'Bienvenue' }}</h2>
+            <p>{{ currentUser?.email || 'Connectez-vous pour personnaliser votre expérience.' }}</p>
           </div>
         </div>
       </div>
 
-      <!-- Navigation Menu -->
-      <div class="menu-content">
-        <!-- Primary Navigation -->
-        <div class="menu-section">
-          <h3 class="section-title">Navigation</h3>
-          <div class="menu-items">
-            <ion-menu-toggle auto-hide="false">
-              <div 
-                class="menu-item" 
-                :class="{ active: $route.path === '/map' }"
-                @click="goToPage('/map')"
-              >
-                <div class="item-icon-wrapper">
-                  <ion-icon :icon="mapOutline" class="item-icon"></ion-icon>
-                </div>
-                <div class="item-content">
-                  <span class="item-label">Carte interactive</span>
-                  <span class="item-description">Explorer les signalements</span>
-                </div>
-                <ion-icon :icon="chevronForwardOutline" class="item-arrow"></ion-icon>
-              </div>
-            </ion-menu-toggle>
+      <div class="menu-section">
+        <p class="section-label">Navigation</p>
+        <ion-menu-toggle auto-hide="false">
+          <button class="menu-item" :class="{ active: $route.path === '/map' }" @click="goToPage('/map')">
+            <ion-icon :icon="mapOutline"></ion-icon>
+            <div>
+              <strong>Carte</strong>
+              <span>Explorer les signalements</span>
+            </div>
+          </button>
+        </ion-menu-toggle>
 
-            <ion-menu-toggle auto-hide="false" v-if="isLoggedIn">
-              <div 
-                class="menu-item" 
-                :class="{ active: $route.path === '/my-reports' }"
-                @click="goToPage('/my-reports')"
-              >
-                <div class="item-icon-wrapper">
-                  <ion-icon :icon="documentTextOutline" class="item-icon"></ion-icon>
-                </div>
-                <div class="item-content">
-                  <span class="item-label">Mes signalements</span>
-                  <span class="item-description">Suivre mes rapports</span>
-                </div>
-                <ion-badge v-if="reportCount > 0" class="item-badge">{{ reportCount }}</ion-badge>
-                <ion-icon :icon="chevronForwardOutline" class="item-arrow"></ion-icon>
-              </div>
-            </ion-menu-toggle>
+        <ion-menu-toggle auto-hide="false" v-if="isLoggedIn">
+          <button class="menu-item" :class="{ active: $route.path === '/my-reports' }" @click="goToPage('/my-reports')">
+            <ion-icon :icon="documentTextOutline"></ion-icon>
+            <div>
+              <strong>Mes signalements</strong>
+              <span>{{ reportCount }} rapport(s) actif(s)</span>
+            </div>
+            <span v-if="reportCount > 0" class="chip">{{ reportCount }}</span>
+          </button>
+        </ion-menu-toggle>
 
-            <ion-menu-toggle auto-hide="false">
-              <div 
-                class="menu-item" 
-                :class="{ active: $route.path === '/statistics' }"
-                @click="goToPage('/statistics')"
-              >
-                <div class="item-icon-wrapper">
-                  <ion-icon :icon="statsChartOutline" class="item-icon"></ion-icon>
-                </div>
-                <div class="item-content">
-                  <span class="item-label">Statistiques</span>
-                  <span class="item-description">Tableau de bord</span>
-                </div>
-                <ion-icon :icon="chevronForwardOutline" class="item-arrow"></ion-icon>
-              </div>
-            </ion-menu-toggle>
-          </div>
-        </div>
-
-        <!-- Account Section -->
-        <div class="menu-section">
-          <h3 class="section-title">Compte</h3>
-          <div class="menu-items">
-            <template v-if="!isLoggedIn">
-              <ion-menu-toggle auto-hide="false">
-                <div class="menu-item" @click="goToPage('/login')">
-                  <div class="item-icon-wrapper primary">
-                    <ion-icon :icon="logInOutline" class="item-icon"></ion-icon>
-                  </div>
-                  <div class="item-content">
-                    <span class="item-label">Se connecter</span>
-                    <span class="item-description">Accéder à mon compte</span>
-                  </div>
-                  <ion-icon :icon="chevronForwardOutline" class="item-arrow"></ion-icon>
-                </div>
-              </ion-menu-toggle>
-
-              <ion-menu-toggle auto-hide="false">
-                <div class="menu-item" @click="goToPage('/register')">
-                  <div class="item-icon-wrapper secondary">
-                    <ion-icon :icon="personAddOutline" class="item-icon"></ion-icon>
-                  </div>
-                  <div class="item-content">
-                    <span class="item-label">Créer un compte</span>
-                    <span class="item-description">Inscription gratuite</span>
-                  </div>
-                  <ion-icon :icon="chevronForwardOutline" class="item-arrow"></ion-icon>
-                </div>
-              </ion-menu-toggle>
-            </template>
-
-            <template v-else>
-              <ion-menu-toggle auto-hide="false">
-                <div class="menu-item danger" @click="handleLogout">
-                  <div class="item-icon-wrapper danger">
-                    <ion-icon :icon="logOutOutline" class="item-icon"></ion-icon>
-                  </div>
-                  <div class="item-content">
-                    <span class="item-label">Déconnexion</span>
-                    <span class="item-description">Quitter mon compte</span>
-                  </div>
-                  <ion-icon :icon="chevronForwardOutline" class="item-arrow"></ion-icon>
-                </div>
-              </ion-menu-toggle>
-            </template>
-          </div>
-        </div>
+        <ion-menu-toggle auto-hide="false">
+          <button class="menu-item" :class="{ active: $route.path === '/statistics' }" @click="goToPage('/statistics')">
+            <ion-icon :icon="statsChartOutline"></ion-icon>
+            <div>
+              <strong>Statistiques</strong>
+              <span>Vue globale & tendances</span>
+            </div>
+          </button>
+        </ion-menu-toggle>
       </div>
 
-      <!-- Footer -->
+      <div class="menu-section">
+        <p class="section-label">Compte</p>
+        <template v-if="!isLoggedIn">
+          <ion-menu-toggle auto-hide="false">
+            <button class="menu-item accent" @click="goToPage('/login')">
+              <ion-icon :icon="logInOutline"></ion-icon>
+              <div>
+                <strong>Se connecter</strong>
+                <span>Accéder à votre compte</span>
+              </div>
+            </button>
+          </ion-menu-toggle>
+          <ion-menu-toggle auto-hide="false">
+            <button class="menu-item" @click="goToPage('/register')">
+              <ion-icon :icon="personAddOutline"></ion-icon>
+              <div>
+                <strong>Créer un compte</strong>
+                <span>Inscription gratuite</span>
+              </div>
+            </button>
+          </ion-menu-toggle>
+        </template>
+
+        <template v-else>
+          <ion-menu-toggle auto-hide="false">
+            <button class="menu-item" :class="{ active: $route.path === '/profile' }" @click="goToPage('/profile')">
+              <ion-icon :icon="personOutline"></ion-icon>
+              <div>
+                <strong>Profil</strong>
+                <span>Vos informations</span>
+              </div>
+            </button>
+          </ion-menu-toggle>
+          <ion-menu-toggle auto-hide="false">
+            <button class="menu-item" :class="{ active: $route.path === '/settings' }" @click="goToPage('/settings')">
+              <ion-icon :icon="settingsOutline"></ion-icon>
+              <div>
+                <strong>Paramètres</strong>
+                <span>Préférences & notifications</span>
+              </div>
+            </button>
+          </ion-menu-toggle>
+          <ion-menu-toggle auto-hide="false">
+            <button class="menu-item danger" @click="handleLogout">
+              <ion-icon :icon="logOutOutline"></ion-icon>
+              <div>
+                <strong>Déconnexion</strong>
+                <span>Quitter la session</span>
+              </div>
+            </button>
+          </ion-menu-toggle>
+        </template>
+      </div>
+
       <div class="menu-footer">
-        <div class="footer-info">
-          <ion-icon :icon="informationCircleOutline"></ion-icon>
-          <span>Version 1.0.0 • Made with ❤️</span>
-        </div>
+        <ion-icon :icon="informationCircleOutline"></ion-icon>
+        <span>RoadWatch • Version 1.0.0</span>
       </div>
     </ion-content>
   </ion-menu>
@@ -178,7 +137,7 @@ import {
   logOutOutline,
   personAddOutline,
   personOutline,
-  chevronForwardOutline,
+  settingsOutline,
   informationCircleOutline
 } from 'ionicons/icons';
 import { ref, computed, onMounted } from 'vue';
@@ -232,11 +191,16 @@ export default {
     const handleLogout = async () => {
       const alert = await alertController.create({
         header: 'Déconnexion',
-        message: 'Voulez-vous vraiment vous déconnecter?',
+        message: 'Êtes-vous sûr de vouloir vous déconnecter de votre compte ?',
         buttons: [
-          { text: 'Annuler', role: 'cancel' },
+          { 
+            text: 'Annuler', 
+            role: 'cancel',
+            cssClass: 'alert-button-cancel'
+          },
           {
-            text: 'Déconnexion',
+            text: 'Se déconnecter',
+            cssClass: 'alert-button-confirm',
             handler: async () => {
               await authService.logout();
               currentUser.value = null;
@@ -245,7 +209,7 @@ export default {
             }
           }
         ],
-        cssClass: 'modern-alert'
+        cssClass: 'modern-alert-glass'
       });
       await alert.present();
     };
@@ -270,7 +234,7 @@ export default {
       logOutOutline,
       personAddOutline,
       personOutline,
-      chevronForwardOutline,
+      settingsOutline,
       informationCircleOutline
     };
   }
@@ -278,126 +242,239 @@ export default {
 </script>
 
 <style scoped>
-.modern-menu {
-  --width: 300px;
-  --ion-background-color: var(--app-background);
-}
-
 ion-content {
-  --background: var(--app-background);
+  --background: transparent;
 }
 
-/* Header */
-.menu-header {
-  padding: var(--app-space-xl) var(--app-space-lg);
-  background: var(--app-gradient-primary);
-  position: relative;
-  overflow: hidden;
+.menu-shell {
+  --width: 320px;
+  --ion-background-color: transparent;
 }
 
-.menu-header::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -20%;
-  width: 200px;
-  height: 200px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 50%;
-}
-
-/* Brand Section */
-.brand-section {
-  display: flex;
-  align-items: center;
+.menu-hero {
+  margin: var(--app-space-lg);
+  padding: var(--app-space-lg);
+  border-radius: var(--app-radius-xl);
+  display: grid;
   gap: var(--app-space-md);
-  margin-bottom: var(--app-space-xl);
-  position: relative;
-  z-index: 1;
 }
 
-.brand-logo {
-  width: 52px;
-  height: 52px;
-  border-radius: var(--app-radius-lg);
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
+.brand-row {
   display: flex;
+  gap: var(--app-space-md);
   align-items: center;
-  justify-content: center;
-  border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .brand-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--app-radius-lg);
+  display: grid;
+  place-items: center;
+  background: rgba(37, 99, 235, 0.15);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+}
+
+.brand-icon ion-icon {
   font-size: 28px;
-  color: white;
+  color: #2563eb;
 }
 
-.brand-info {
-  flex: 1;
-}
-
-.brand-title {
+.brand-row h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 800;
-  color: white;
   font-family: var(--app-font-display);
-  letter-spacing: -0.5px;
+  color: #0f172a;
 }
 
-.brand-accent {
-  color: rgba(255, 255, 255, 0.8);
+.brand-row h1 span {
+  color: var(--ion-color-primary);
 }
 
-.brand-subtitle {
-  margin: 2px 0 0;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.85);
+.brand-row p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.8rem;
   font-weight: 500;
 }
 
-/* Profile Card */
-.profile-card {
+.profile-panel {
+  display: flex;
+  gap: var(--app-space-sm);
+  align-items: center;
+  padding: var(--app-space-md);
+  border-radius: var(--app-radius-lg);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.profile-panel.guest {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(37, 99, 235, 0.08));
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: #2563eb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+}
+
+.profile-info h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.profile-info p {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.menu-section {
+  margin: 0 var(--app-space-lg) var(--app-space-lg);
+  display: grid;
+  gap: var(--app-space-sm);
+}
+
+.section-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin: 0 0 var(--app-space-xs);
+  font-weight: 700;
+}
+
+.menu-item {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  border-radius: var(--app-radius-lg);
+  padding: 14px 16px;
   display: flex;
   align-items: center;
   gap: var(--app-space-md);
-  padding: var(--app-space-md);
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(20px);
-  border-radius: var(--app-radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  position: relative;
-  z-index: 1;
+  text-align: left;
+  color: #0f172a;
+  transition: all var(--app-transition-base);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
-.profile-avatar {
-  position: relative;
+.menu-item:hover {
+  transform: translateX(4px);
+  border-color: rgba(37, 99, 235, 0.3);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
 }
 
-.avatar-circle {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--app-radius-full);
-  background: white;
+.menu-item ion-icon {
+  font-size: 22px;
+  color: #2563eb;
+  transition: transform 0.2s ease;
+}
+
+.menu-item:hover ion-icon {
+  transform: scale(1.1);
+}
+
+.menu-item div {
+  display: grid;
+  gap: 3px;
+  flex: 1;
+}
+
+.menu-item strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.menu-item span {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.menu-item.active {
+  border-color: rgba(37, 99, 235, 0.5);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.04));
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+.menu-item.accent {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+}
+
+.menu-item.accent:hover {
+  box-shadow: 0 6px 24px rgba(37, 99, 235, 0.4);
+  transform: translateX(4px) translateY(-2px);
+}
+
+.menu-item.accent ion-icon,
+.menu-item.accent strong,
+.menu-item.accent span {
+  color: #ffffff;
+}
+
+.menu-item.danger {
+  border-color: rgba(220, 38, 38, 0.3);
+  background: rgba(254, 242, 242, 0.6);
+}
+
+.menu-item.danger:hover {
+  border-color: rgba(220, 38, 38, 0.5);
+  background: rgba(254, 242, 242, 0.9);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+}
+
+.menu-item.danger ion-icon {
+  color: #dc2626;
+}
+
+.chip {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+.menu-footer {
+  margin: 0 var(--app-space-lg) var(--app-space-lg);
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--ion-color-primary);
-  border: 3px solid rgba(255, 255, 255, 0.3);
+  gap: 8px;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 12px;
+  border-radius: var(--app-radius-lg);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
-.status-dot {
-  position: absolute;
-  bottom: 2px;
-  right: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--ion-color-success);
-  border: 2px solid white;
+.menu-footer ion-icon {
+  color: #64748b;
 }
 
 .profile-info {

@@ -414,9 +414,10 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #e2e8f0 0%, #f8fafc 100%);
-  color: #0f172a;
-  font-size: 15px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(14px);
+  color: var(--app-text-primary);
+  font-size: 0.95rem;
   z-index: 10;
 }
 

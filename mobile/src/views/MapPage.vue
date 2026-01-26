@@ -1,22 +1,22 @@
 <template>
   <ion-page>
-    <ion-header>
+    <ion-header class="ion-no-border">
       <ion-toolbar>
         <ion-buttons slot="start">
           <ion-menu-button></ion-menu-button>
         </ion-buttons>
-        <ion-title>Carte des signalements</ion-title>
+        <ion-title>Carte intelligente</ion-title>
         <ion-buttons slot="end">
-          <ion-button class="toolbar-pill" @click="toggleStats">
+          <ion-button class="icon-chip" @click="toggleStats">
             <ion-icon :icon="statsChartOutline"></ion-icon>
           </ion-button>
-          <ion-button class="toolbar-pill" @click="goToMyReports" v-if="isLoggedIn">
+          <ion-button class="icon-chip" @click="goToMyReports" v-if="isLoggedIn">
             <ion-icon :icon="listOutline"></ion-icon>
           </ion-button>
-          <ion-button class="toolbar-pill" @click="handleLogout" v-if="isLoggedIn">
+          <ion-button class="icon-chip" @click="handleLogout" v-if="isLoggedIn">
             <ion-icon :icon="logOutOutline"></ion-icon>
           </ion-button>
-          <ion-button class="toolbar-pill" @click="goToLogin" v-else>
+          <ion-button class="icon-chip" @click="goToLogin" v-else>
             <ion-icon :icon="logInOutline"></ion-icon>
           </ion-button>
         </ion-buttons>
@@ -24,42 +24,54 @@
     </ion-header>
 
     <ion-content class="map-page-content">
-      <section class="hero">
-        <div>
-          <h1>Signalez les anomalies routières</h1>
-          <p>Repérez les incidents, ajoutez un signalement et suivez les travaux en temps réel.</p>
-        </div>
-        <div class="hero-actions">
-          <ion-button v-if="!isLoggedIn" expand="block" @click="goToLogin">Se connecter</ion-button>
-          <ion-button v-if="isLoggedIn" expand="block" color="secondary" @click="goToMyReports">Voir mes signalements</ion-button>
-        </div>
-      </section>
-
-      <section class="stats-panel" v-if="showStats">
-        <StatsCard :stats="statistics" :reports="reports" />
-      </section>
-
-      <section class="map-section">
-        <div class="map-header">
+      <div class="page-shell">
+        <section class="hero glass-strong card">
           <div>
-            <h2>Carte interactive</h2>
-            <p>Cliquez sur la carte pour ajouter un signalement.</p>
+            <h1>Signalez, suivez, améliorez.</h1>
+            <p class="text-secondary">
+              Repérez les incidents routiers et suivez l'avancement des interventions en temps réel.
+            </p>
           </div>
-          <div class="map-badges">
-            <span class="badge">{{ filteredReports.length }} signalements</span>
-            <span class="badge ghost">Antananarivo</span>
+          <div class="hero-actions">
+            <div class="btn-primary" v-if="!isLoggedIn">
+              <ion-button expand="block" @click="goToLogin">Se connecter</ion-button>
+            </div>
+            <div class="btn-secondary" v-else>
+              <ion-button expand="block" @click="goToMyReports">Voir mes signalements</ion-button>
+            </div>
           </div>
-        </div>
-        <div class="map-wrapper">
-          <MapComponent
-            :reports="filteredReports"
-            :can-report="isLoggedIn"
-            @add-report="handleAddReport"
-            @marker-clicked="handleMarkerClick"
-            ref="mapComponent"
-          />
-        </div>
-      </section>
+        </section>
+
+        <section v-if="showStats" class="stats-panel">
+          <StatsCard :stats="statistics" :reports="reports" />
+        </section>
+
+        <section class="map-section">
+          <div class="map-header">
+            <div>
+              <h2>Carte interactive</h2>
+              <p class="text-secondary">Touchez la carte pour ajouter un signalement.</p>
+            </div>
+            <div class="map-badges">
+              <span class="badge">{{ filteredReports.length }} signalements</span>
+              <span class="badge">Antananarivo</span>
+            </div>
+          </div>
+          <div class="map-wrapper glass">
+            <MapComponent
+              :reports="filteredReports"
+              :can-report="isLoggedIn"
+              @add-report="handleAddReport"
+              @marker-clicked="handleMarkerClick"
+              ref="mapComponent"
+            />
+            <div class="map-overlay">
+              <span class="chip">Cliquez pour signaler</span>
+              <span class="chip" v-if="!isLoggedIn">Connexion requise</span>
+            </div>
+          </div>
+        </section>
+      </div>
 
       <ReportModal
         :is-open="reportModalOpen"
@@ -76,9 +88,7 @@
 </template>
 
 <script>
-import { 
-    IonMenuButton 
-    } from '@ionic/vue';
+import { IonMenuButton } from '@ionic/vue';
 
 import {
   IonPage,
@@ -91,23 +101,23 @@ import {
   IonIcon,
   IonSpinner,
   alertController,
-} from "@ionic/vue";
+} from '@ionic/vue';
 import {
   statsChartOutline,
   listOutline,
   logOutOutline,
   logInOutline,
-} from "ionicons/icons";
-import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
-import MapComponent from "@/components/MapComponent.vue";
-import ReportModal from "@/components/ReportModal.vue";
-import StatsCard from "@/components/StatsCard.vue";
-import reportService from "@/services/reportService";
-import authService from "@/services/authService";
+} from 'ionicons/icons';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import MapComponent from '@/components/MapComponent.vue';
+import ReportModal from '@/components/ReportModal.vue';
+import StatsCard from '@/components/StatsCard.vue';
+import reportService from '@/services/reportService';
+import authService from '@/services/authService';
 
 export default {
-  name: "MapPage",
+  name: 'MapPage',
   components: {
     IonPage,
     IonHeader,
@@ -135,17 +145,9 @@ export default {
 
     const currentUser = ref(authService.getCurrentUser());
 
-    const isLoggedIn = computed(() => {
-      return currentUser.value !== null;
-    });
-
-    const filteredReports = computed(() => {
-      return reports.value;
-    });
-
-    const statistics = computed(() => {
-      return reportService.calculateStats(reports.value);
-    });
+    const isLoggedIn = computed(() => currentUser.value !== null);
+    const filteredReports = computed(() => reports.value);
+    const statistics = computed(() => reportService.calculateStats(reports.value));
 
     const loadReports = async () => {
       loading.value = true;
@@ -156,9 +158,9 @@ export default {
         reports.value = result.data;
       } else {
         const alert = await alertController.create({
-          header: "Erreur",
-          message: "Impossible de charger les signalements",
-          buttons: ["OK"],
+          header: 'Erreur',
+          message: 'Impossible de charger les signalements',
+          buttons: ['OK'],
         });
         await alert.present();
       }
@@ -174,20 +176,16 @@ export default {
       if (!isLoggedIn.value) {
         alertController
           .create({
-            header: "Connexion requise",
-            message: "Vous devez vous connecter pour créer un signalement",
+            header: 'Connexion requise',
+            message: 'Vous devez vous connecter pour créer un signalement',
             buttons: [
+              { text: 'Annuler', role: 'cancel' },
               {
-                text: "Annuler",
-                role: "cancel",
-              },
-              {
-                text: "Se connecter",
-                handler: () => {
-                  router.push("/login");
-                },
+                text: 'Se connecter',
+                handler: () => router.push('/login'),
               },
             ],
+            cssClass: 'modern-alert',
           })
           .then((alert) => alert.present());
         return;
@@ -204,9 +202,7 @@ export default {
     const closeReportModal = () => {
       reportModalOpen.value = false;
 
-      // Attendre que le modal soit fermé avant de nettoyer
       setTimeout(() => {
-        // Nettoyer le marqueur temporaire
         if (mapComponent.value) {
           mapComponent.value.clearTempMarker();
         }
@@ -214,49 +210,38 @@ export default {
     };
 
     const handleReportCreated = async () => {
-      // Recharger les signalements
       await loadReports();
     };
 
     const handleMarkerClick = (report) => {
-      console.log("Marker clicked:", report);
-      // Vous pouvez afficher plus de détails ici si nécessaire
+      console.log('Marker clicked:', report);
     };
 
-    const goToMyReports = () => {
-      router.push("/my-reports");
-    };
-
-    const goToLogin = () => {
-      router.push("/login");
-    };
+    const goToMyReports = () => router.push('/my-reports');
+    const goToLogin = () => router.push('/login');
 
     const handleLogout = async () => {
       const alert = await alertController.create({
-        header: "Déconnexion",
-        message: "Voulez-vous vraiment vous déconnecter ?",
+        header: 'Déconnexion',
+        message: 'Voulez-vous vraiment vous déconnecter ?',
         buttons: [
+          { text: 'Annuler', role: 'cancel' },
           {
-            text: "Annuler",
-            role: "cancel",
-          },
-          {
-            text: "Déconnexion",
+            text: 'Déconnexion',
             handler: async () => {
               await authService.logout();
               currentUser.value = null;
-              router.push("/login");
+              router.push('/login');
             },
           },
         ],
+        cssClass: 'modern-alert',
       });
       await alert.present();
     };
 
     onMounted(() => {
       loadReports();
-
-      // Vérifier l'état de connexion
       currentUser.value = authService.getCurrentUser();
     });
 
@@ -289,45 +274,72 @@ export default {
 
 <style scoped>
 .map-page-content {
-  --background: var(--app-background);
+  --background: transparent;
+}
+
+.icon-chip {
+  --background: rgba(255, 255, 255, 0.85);
+  --color: #0f172a;
+  --border-radius: var(--app-radius-full);
+  --padding-start: 10px;
+  --padding-end: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.icon-chip ion-icon {
+  font-size: 20px;
+  color: #2563eb;
 }
 
 .hero {
-  margin: 16px;
-  padding: 20px;
-  border-radius: 20px;
-  background: var(--app-gradient);
-  color: #ffffff;
-  box-shadow: var(--app-shadow-lg);
   display: grid;
-  gap: 16px;
+  gap: var(--app-space-md);
+  background: var(--app-glass-bg-strong);
+  border: 1px solid var(--app-glass-border);
+  color: #0f172a;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 55%),
+    radial-gradient(circle at bottom left, rgba(14, 165, 233, 0.08), transparent 50%);
+  z-index: 0;
+}
+
+.hero > * {
+  position: relative;
+  z-index: 1;
 }
 
 .hero h1 {
-  margin: 0 0 8px;
-  font-size: 22px;
-  font-weight: 700;
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-weight: 800;
+  color: #0f172a;
 }
 
 .hero p {
   margin: 0;
-  font-size: 14px;
-  opacity: 0.9;
+  font-size: 0.95rem;
 }
 
-.hero-actions ion-button {
-  --background: #ffffff;
-  --color: #1e293b;
+.hero-actions {
+  display: grid;
+  gap: var(--app-space-sm);
 }
 
 .stats-panel {
-  margin: 0 16px 16px;
+  margin-top: var(--app-space-md);
 }
 
 .map-section {
-  margin: 0 16px 20px;
   display: grid;
-  gap: 12px;
+  gap: var(--app-space-md);
 }
 
 .map-header {
@@ -338,73 +350,83 @@ export default {
 
 .map-header h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 1.2rem;
+  font-weight: 800;
   color: #0f172a;
 }
 
 .map-header p {
-  margin: 0;
-  color: var(--ion-color-medium);
-  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .map-badges {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
 }
 
 .badge {
-  background: #e0f2fe;
-  color: #0369a1;
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.badge.ghost {
-  background: #f1f5f9;
-  color: #475569;
-}
-
-.toolbar-pill {
-  --background: rgba(255, 255, 255, 0.2);
-  --color: #ffffff;
-  --border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: var(--app-radius-full);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.08));
+  color: #2563eb;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.1);
 }
 
 .map-wrapper {
-  height: clamp(320px, 60vh, 520px);
-  width: 100%;
   position: relative;
   padding: 12px;
-  box-sizing: border-box;
+  height: clamp(320px, 60vh, 520px);
+  border-radius: var(--app-radius-xl);
 }
 
 .map-wrapper :deep(.leaflet-container) {
-  border-radius: 18px;
-  box-shadow: var(--app-shadow-lg);
+  border-radius: var(--app-radius-xl);
   overflow: hidden;
+}
+
+.map-overlay {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  z-index: 5;
+}
+
+.chip {
+  padding: 8px 16px;
+  border-radius: var(--app-radius-full);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  color: #0f172a;
+  font-size: 0.8rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.25);
 }
 
 .loader-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.3);
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(16px) saturate(120%);
+  z-index: 1000;
 }
 
-ion-spinner {
-  --color: var(--ion-color-primary);
-  width: 50px;
-  height: 50px;
+.loader-overlay ion-spinner {
+  --color: #2563eb;
+  transform: scale(1.5);
 }
 </style>

@@ -1,133 +1,80 @@
 <template>
   <ion-page>
-    <ion-content :fullscreen="true" class="login-content">
-      <div class="login-container">
-        <!-- Animated Background -->
-        <div class="animated-bg">
-          <div class="blob blob-1"></div>
-          <div class="blob blob-2"></div>
-          <div class="blob blob-3"></div>
+    <ion-content :fullscreen="true" class="auth-page">
+      <div class="auth-bg">
+        <div class="orb orb-primary"></div>
+        <div class="orb orb-secondary"></div>
+        <div class="orb orb-tertiary"></div>
+      </div>
+
+      <div class="auth-shell">
+        <div class="auth-hero glass-strong card fade-in">
+          <div class="brand">
+            <div class="brand-icon">
+              <ion-icon :icon="navigateCircleOutline"></ion-icon>
+            </div>
+            <div>
+              <h1>Road<span class="gradient-text">Watch</span></h1>
+              <p>Signalement intelligent des anomalies routières</p>
+            </div>
+          </div>
+          <div class="hero-stats">
+            <div>
+              <ion-icon :icon="shieldCheckmarkOutline"></ion-icon>
+              <strong>Fiable</strong>
+              <span>Signalements vérifiés</span>
+            </div>
+            <div>
+              <ion-icon :icon="sparklesOutline"></ion-icon>
+              <strong>Rapide</strong>
+              <span>Mises à jour en temps réel</span>
+            </div>
+          </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="content-wrapper">
-          <!-- Hero Section -->
-          <div class="hero-section animate-fade-in">
-            <div class="logo-container">
-              <div class="logo-circle">
-                <ion-icon :icon="navigateCircleOutline" class="logo-icon"></ion-icon>
-              </div>
-            </div>
-            <h1 class="main-title">
-              Road<span class="gradient-text">Watch</span>
-            </h1>
-            <p class="subtitle">Signalement intelligent des anomalies routières</p>
-            
-            <!-- Stats Bar -->
-            <div class="stats-bar glass-card">
-              <div class="stat-item">
-                <ion-icon :icon="peopleOutline"></ion-icon>
-                <div>
-                  <strong>2.5K+</strong>
-                  <span>Utilisateurs</span>
-                </div>
-              </div>
-              <div class="stat-divider"></div>
-              <div class="stat-item">
-                <ion-icon :icon="checkmarkCircleOutline"></ion-icon>
-                <div>
-                  <strong>98%</strong>
-                  <span>Résolution</span>
-                </div>
-              </div>
-            </div>
+        <div class="auth-card glass card slide-up">
+          <div class="auth-header">
+            <h2>Connexion</h2>
+            <p class="text-secondary">Reprenez vos signalements en quelques secondes.</p>
           </div>
 
-          <!-- Login Form -->
-          <div class="form-section animate-slide-up">
-            <div class="form-card glass-card">
-              <div class="form-header">
-                <h2>Bienvenue</h2>
-                <p>Connectez-vous pour continuer</p>
+          <form @submit.prevent="handleLogin" class="auth-form">
+            <div class="input-field">
+              <label>Adresse email</label>
+              <div class="input-shell">
+                <ion-icon :icon="mailOutline"></ion-icon>
+                <input v-model="email" type="email" placeholder="vous@email.com" required />
               </div>
-
-              <form @submit.prevent="handleLogin" class="login-form">
-                <div class="input-group">
-                  <div class="input-wrapper">
-                    <ion-icon :icon="mailOutline" class="input-icon"></ion-icon>
-                    <input
-                      v-model="email"
-                      type="email"
-                      placeholder="Adresse email"
-                      class="modern-input"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div class="input-group">
-                  <div class="input-wrapper">
-                    <ion-icon :icon="lockClosedOutline" class="input-icon"></ion-icon>
-                    <input
-                      v-model="password"
-                      :type="showPassword ? 'text' : 'password'"
-                      placeholder="Mot de passe"
-                      class="modern-input"
-                      required
-                    />
-                    <ion-icon 
-                      :icon="showPassword ? eyeOffOutline : eyeOutline" 
-                      class="input-action"
-                      @click="showPassword = !showPassword"
-                    ></ion-icon>
-                  </div>
-                </div>
-
-                <div class="form-footer">
-                  <label class="remember-me">
-                    <input type="checkbox" v-model="rememberMe" />
-                    <span>Se souvenir de moi</span>
-                  </label>
-                  <button type="button" class="link-btn">Mot de passe oublié?</button>
-                </div>
-
-                <ion-button
-                  expand="block"
-                  type="submit"
-                  :disabled="loading"
-                  class="submit-btn"
-                  size="large"
-                >
-                  <ion-spinner v-if="loading" name="crescent"></ion-spinner>
-                  <span v-else>Se connecter</span>
-                </ion-button>
-
-                <div class="divider">
-                  <span>ou continuer avec</span>
-                </div>
-
-                <div class="action-buttons">
-                  <ion-button 
-                    fill="outline" 
-                    expand="block"
-                    @click="continueAsVisitor"
-                    class="secondary-btn"
-                  >
-                    <ion-icon :icon="compassOutline" slot="start"></ion-icon>
-                    Continuer en visiteur
-                  </ion-button>
-                </div>
-              </form>
             </div>
 
-            <!-- Register Link -->
-            <div class="register-link">
-              <p>
-                Pas encore de compte?
-                <button @click="goToRegister" class="link-btn primary">Créer un compte</button>
-              </p>
+            <div class="input-field">
+              <label>Mot de passe</label>
+              <div class="input-shell">
+                <ion-icon :icon="lockClosedOutline"></ion-icon>
+                <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="••••••••" required />
+                <button type="button" class="icon-btn" @click="showPassword = !showPassword">
+                  <ion-icon :icon="showPassword ? eyeOffOutline : eyeOutline"></ion-icon>
+                </button>
+              </div>
             </div>
-          </div>
+
+            <div class="auth-actions">
+              <button type="button" class="link-btn">Mot de passe oublié ?</button>
+              <button type="button" class="link-btn ghost" @click="continueAsVisitor">Continuer en visiteur</button>
+            </div>
+
+            <div class="btn-primary">
+              <ion-button expand="block" type="submit" :disabled="loading" size="large">
+                <ion-spinner v-if="loading" name="crescent"></ion-spinner>
+                <span v-else>Se connecter</span>
+              </ion-button>
+            </div>
+          </form>
+        </div>
+
+        <div class="auth-footer">
+          <span>Pas encore de compte ?</span>
+          <button class="link-btn primary" @click="goToRegister">Créer un compte</button>
         </div>
       </div>
     </ion-content>
@@ -149,9 +96,8 @@ import {
   eyeOutline, 
   eyeOffOutline,
   navigateCircleOutline,
-  peopleOutline,
-  checkmarkCircleOutline,
-  compassOutline
+  shieldCheckmarkOutline,
+  sparklesOutline
 } from 'ionicons/icons';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -172,7 +118,6 @@ export default {
     const password = ref('');
     const loading = ref(false);
     const showPassword = ref(false);
-    const rememberMe = ref(false);
 
     const handleLogin = async () => {
       if (!email.value || !password.value) {
@@ -226,7 +171,6 @@ export default {
       password,
       loading,
       showPassword,
-      rememberMe,
       handleLogin,
       goToRegister,
       continueAsVisitor,
@@ -235,168 +179,183 @@ export default {
       eyeOutline,
       eyeOffOutline,
       navigateCircleOutline,
-      peopleOutline,
-      checkmarkCircleOutline,
-      compassOutline
+      shieldCheckmarkOutline,
+      sparklesOutline
     };
   }
 };
 </script>
 
 <style scoped>
-.login-content {
-  --background: var(--app-background);
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-16px);
+  }
 }
 
-.login-container {
-  min-height: 100vh;
+.auth-page {
   position: relative;
-  overflow: hidden;
+  --background: transparent;
 }
 
-/* Animated Background */
-.animated-bg {
+.auth-bg {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   overflow: hidden;
   z-index: 0;
 }
 
-.blob {
+.orb {
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
-  opacity: 0.5;
-  animation: float 20s ease-in-out infinite;
+  opacity: 0.6;
+  animation: float 16s ease-in-out infinite;
 }
 
-.blob-1 {
-  width: 400px;
-  height: 400px;
-  background: linear-gradient(135deg, #6366f1, #a855f7);
-  top: -200px;
-  right: -100px;
-  animation-delay: 0s;
+.orb-primary {
+  width: 320px;
+  height: 320px;
+  background: rgba(79, 70, 229, 0.5);
+  top: -120px;
+  right: -80px;
 }
 
-.blob-2 {
-  width: 350px;
-  height: 350px;
-  background: linear-gradient(135deg, #06b6d4, #3b82f6);
-  bottom: -150px;
-  left: -100px;
-  animation-delay: 7s;
+.orb-secondary {
+  width: 280px;
+  height: 280px;
+  background: rgba(14, 165, 233, 0.4);
+  bottom: -120px;
+  left: -80px;
+  animation-delay: 2s;
 }
 
-.blob-3 {
-  width: 300px;
-  height: 300px;
-  background: linear-gradient(135deg, #22c55e, #10b981);
-  top: 50%;
+.orb-tertiary {
+  width: 240px;
+  height: 240px;
+  background: rgba(168, 85, 247, 0.4);
+  top: 45%;
   left: 50%;
   transform: translate(-50%, -50%);
-  animation-delay: 14s;
+  animation-delay: 4s;
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-  }
-  33% {
-    transform: translate(30px, -30px) scale(1.1);
-  }
-  66% {
-    transform: translate(-20px, 20px) scale(0.9);
-  }
-}
-
-/* Content Wrapper */
-.content-wrapper {
+.auth-shell {
   position: relative;
   z-index: 1;
-  padding: var(--app-space-xl) var(--app-space-lg);
-  max-width: 480px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  justify-content: center;
-  gap: var(--app-space-2xl);
-}
-
-/* Hero Section */
-.hero-section {
-  text-align: center;
-}
-
-.logo-container {
-  margin-bottom: var(--app-space-lg);
-}
-
-.logo-circle {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto;
-  border-radius: var(--app-radius-full);
-  background: var(--app-gradient-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--app-shadow-primary);
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow: var(--app-shadow-primary);
-  }
-  50% {
-    transform: scale(1.05);
-    box-shadow: 0 15px 40px -5px rgba(99, 102, 241, 0.5);
-  }
-}
-
-.logo-icon {
-  font-size: 42px;
-  color: white;
-}
-
-.main-title {
-  font-size: 2.5rem;
-  font-weight: 800;
-  margin: 0 0 var(--app-space-sm);
-  color: var(--app-text-primary);
-  font-family: var(--app-font-display);
-  letter-spacing: -1px;
-}
-
-.subtitle {
-  font-size: 1rem;
-  color: var(--app-text-secondary);
-  margin: 0 0 var(--app-space-xl);
-  font-weight: 500;
-}
-
-/* Stats Bar */
-.stats-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: clamp(16px, 4vw, 32px);
+  display: grid;
   gap: var(--app-space-lg);
-  padding: var(--app-space-lg);
-  border-radius: var(--app-radius-xl);
+  max-width: 520px;
   margin: 0 auto;
-  max-width: 320px;
 }
 
-.stat-item {
+.auth-hero {
+  display: grid;
+  gap: var(--app-space-md);
+}
+
+.brand {
   display: flex;
-  align-items: center;
   gap: var(--app-space-sm);
+  align-items: center;
+}
+
+.brand-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--app-radius-lg);
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 1.7rem;
+  font-family: var(--app-font-display);
+}
+
+.brand p {
+  margin: 4px 0 0;
+  color: var(--app-text-secondary);
+  font-size: 0.85rem;
+}
+
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--app-space-md);
+}
+
+.hero-stats div {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: var(--app-radius-lg);
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+  color: var(--app-text-primary);
+}
+
+.hero-stats ion-icon {
+  font-size: 20px;
+  color: var(--ion-color-primary);
+}
+
+.auth-card {
+  display: grid;
+  gap: var(--app-space-md);
+}
+
+.auth-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.auth-form {
+  display: grid;
+  gap: var(--app-space-md);
+}
+
+.auth-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--app-space-sm);
+  flex-wrap: wrap;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ion-color-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.link-btn.ghost {
+  color: var(--app-text-secondary);
+}
+
+.link-btn.primary {
+  color: var(--ion-color-primary);
+}
+
+.icon-btn {
+  border: none;
+  background: transparent;
+  color: var(--app-text-secondary);
+}
+
+.auth-footer {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  color: var(--app-text-secondary);
 }
 
 .stat-item ion-icon {

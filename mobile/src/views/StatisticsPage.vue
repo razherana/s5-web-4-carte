@@ -1,13 +1,13 @@
 <template>
   <ion-page>
-    <ion-header>
+    <ion-header class="ion-no-border">
       <ion-toolbar>
         <ion-buttons slot="start">
           <ion-menu-button></ion-menu-button>
         </ion-buttons>
         <ion-title>Statistiques</ion-title>
         <ion-buttons slot="end">
-          <ion-button class="toolbar-pill" @click="loadStats">
+          <ion-button class="icon-chip" @click="loadStats">
             <ion-icon :icon="refreshOutline"></ion-icon>
           </ion-button>
         </ion-buttons>
@@ -15,17 +15,23 @@
     </ion-header>
 
     <ion-content class="stats-content">
-      <section class="stats-hero">
-        <h1>Tableau de bord</h1>
-        <p>Suivi global des signalements et de l'avancement.</p>
-      </section>
+      <div class="page-shell">
+        <section class="hero glass-strong card">
+          <h1>Tableau de bord</h1>
+          <p class="text-secondary">Suivi global des signalements et indicateurs clés.</p>
+          <div class="hero-chips">
+            <span class="chip">Temps réel</span>
+            <span class="chip">Données publiques</span>
+          </div>
+        </section>
 
-      <div v-if="loading" class="loading-container">
-        <ion-spinner name="crescent"></ion-spinner>
-        <p>Chargement des statistiques...</p>
+        <div v-if="loading" class="loading-container glass card">
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>Chargement des statistiques...</p>
+        </div>
+
+        <StatsCard v-else :stats="statistics" :reports="reports" />
       </div>
-
-      <StatsCard v-else :stats="statistics" :reports="reports" />
     </ion-content>
   </ion-page>
 </template>
@@ -95,43 +101,57 @@ export default {
   
 <style scoped>
 .stats-content {
-  --background: var(--app-background);
+  --background: transparent;
 }
 
-.toolbar-pill {
-  --background: rgba(255, 255, 255, 0.2);
-  --color: #ffffff;
-  --border-radius: 999px;
+.icon-chip {
+  --background: rgba(255, 255, 255, 0.3);
+  --color: var(--app-text-primary);
+  --border-radius: var(--app-radius-full);
+  --padding-start: 8px;
+  --padding-end: 8px;
 }
 
-.stats-hero {
-  margin: 16px;
-  padding: 20px;
-  border-radius: 20px;
-  background: var(--app-gradient-primary);
-  color: #ffffff;
-  box-shadow: var(--app-shadow-lg);
+.hero {
+  display: grid;
+  gap: var(--app-space-sm);
+  background: var(--app-glass-bg-strong);
+  border: 1px solid var(--app-glass-border);
+  color: var(--app-text-primary);
+  position: relative;
+  overflow: hidden;
 }
 
-.stats-hero h1 {
-  margin: 0 0 6px;
-  font-size: 20px;
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top right, rgba(79, 70, 229, 0.25), transparent 55%),
+    radial-gradient(circle at bottom left, rgba(14, 165, 233, 0.2), transparent 50%);
+  z-index: 0;
 }
 
-.stats-hero p {
+.hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hero h1 {
   margin: 0;
-  font-size: 13px;
-  opacity: 0.85;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+}
+
+.hero-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 60vh;
-  gap: 12px;
-  color: var(--ion-color-medium);
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+  gap: 10px;
 }
 </style>
     

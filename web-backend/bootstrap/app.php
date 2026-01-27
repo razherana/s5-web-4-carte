@@ -15,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth.firebase' => \App\Http\Middleware\AuthFirebaseMiddleware::class,
             'manager' => \App\Http\Middleware\ManagerMiddleware::class,
         ]);
+
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

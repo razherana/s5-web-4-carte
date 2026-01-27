@@ -120,4 +120,17 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Login Attempts
+    |--------------------------------------------------------------------------
+    |
+    | Configure the maximum number of failed login attempts before an account
+    | is locked and the duration of the lockout period.
+    |
+    */
+
+    'max_login_attempts' => env('AUTH_MAX_LOGIN_ATTEMPTS', 3),
+    'lockout_duration' => env('AUTH_LOCKOUT_DURATION', 900), // 15 minutes in seconds
+
 ];

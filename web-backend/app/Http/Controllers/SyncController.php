@@ -79,7 +79,9 @@ class SyncController extends Controller
             'date_signalement' => $signalement->date_signalement,
             'surface' => (float) $signalement->surface,
             'budget' => (float) $signalement->budget,
-            'entreprise_id' => $signalement->entreprise_id,
+            'entreprise_id' => [
+                'name' => $signalement->entreprise->name,
+            ]
         ];
     }
 }

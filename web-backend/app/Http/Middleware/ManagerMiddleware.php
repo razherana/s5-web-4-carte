@@ -21,15 +21,23 @@ class ManagerMiddleware
 
         if (!$user) {
             return response()->json([
-                'error' => 'Unauthorized',
-                'message' => 'Authentication required'
+                'status' => 'error',
+                'data' => null,
+                'error' => [
+                    'code' => 'UNAUTHORIZED',
+                    'message' => 'Authentication required',
+                ],
             ], 401);
         }
 
         if ($user->role !== 'manager') {
             return response()->json([
-                'error' => 'Forbidden',
-                'message' => 'Manager access required'
+                'status' => 'error',
+                'data' => null,
+                'error' => [
+                    'code' => 'FORBIDDEN',
+                    'message' => 'Manager access required',
+                ],
             ], 403);
         }
 

@@ -56,6 +56,7 @@ class AuthController extends Controller
         ]);
 
         $token = HybridGuard::generateLocalToken($user);
+        $refreshToken = HybridGuard::generateRefreshToken($user);
 
         return $this->successResponse([
             'message' => 'User registered successfully',
@@ -65,6 +66,7 @@ class AuthController extends Controller
                 'role' => $user->role,
             ],
             'token' => $token,
+            'refresh_token' => $refreshToken,
             'auth_mode' => 'local',
         ], 201);
     }
@@ -106,6 +108,10 @@ class AuthController extends Controller
             'role' => $validated['role'] ?? 'user',
         ]);
 
+        // Generate our JWT with Firebase token embedded
+        $token = HybridGuard::generateLocalToken($user, $idToken, 'firebase');
+        $refreshToken = HybridGuard::generateRefreshToken($user);
+
         return $this->successResponse([
             'message' => 'User registered successfully with Firebase',
             'user' => [
@@ -114,7 +120,8 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'firebase_uid' => $user->firebase_uid,
             ],
-            'token' => $idToken,
+            'token' => $token,
+            'refresh_token' => $refreshToken,
             'auth_mode' => 'firebase',
         ], 201);
     }
@@ -170,13 +177,31 @@ class AuthController extends Controller
 
         $user = User::where('email', $validated['email'])->first();
 
+        // Check if account is locked
+        if ($user && $user->isLocked()) {
+            return $this->errorResponse(
+                'ACCOUNT_LOCKED',
+                'Account is locked due to too many failed login attempts. Please try again later or contact an administrator.',
+                423
+            );
+        }
+
         if (!$user || !Hash::check($validated['password'], $user->password)) {
+            // Increment failed login attempts
+            if ($user) {
+                $user->incrementLoginAttempts();
+            }
+
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
 
+        // Reset login attempts on successful login
+        $user->resetLoginAttempts();
+
         $token = HybridGuard::generateLocalToken($user);
+        $refreshToken = HybridGuard::generateRefreshToken($user);
 
         return $this->successResponse([
             'message' => 'Login successful',
@@ -186,6 +211,7 @@ class AuthController extends Controller
                 'role' => $user->role,
             ],
             'token' => $token,
+            'refresh_token' => $refreshToken,
             'auth_mode' => 'local',
         ]);
     }
@@ -221,6 +247,15 @@ class AuthController extends Controller
             $user = User::where('email', $firebaseUser->email)->first();
 
             if ($user) {
+                // Check if account is locked
+                if ($user->isLocked()) {
+                    return $this->errorResponse(
+                        'ACCOUNT_LOCKED',
+                        'Account is locked due to too many failed login attempts. Please try again later or contact an administrator.',
+                        423
+                    );
+                }
+
                 // Link Firebase to existing user
                 $user->firebase_uid = $uid;
                 $user->save();
@@ -233,7 +268,23 @@ class AuthController extends Controller
                     'role' => 'user',
                 ]);
             }
+        } else {
+            // Check if account is locked
+            if ($user->isLocked()) {
+                return $this->errorResponse(
+                    'ACCOUNT_LOCKED',
+                    'Account is locked due to too many failed login attempts. Please try again later or contact an administrator.',
+                    423
+                );
+            }
         }
+
+        // Reset login attempts on successful login
+        $user->resetLoginAttempts();
+
+        // Generate our JWT with Firebase token embedded
+        $token = HybridGuard::generateLocalToken($user, $idToken, 'firebase');
+        $refreshToken = HybridGuard::generateRefreshToken($user);
 
         return $this->successResponse([
             'message' => 'Firebase authentication successful',
@@ -243,7 +294,8 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'firebase_uid' => $user->firebase_uid,
             ],
-            'token' => $idToken,
+            'token' => $token,
+            'refresh_token' => $refreshToken,
             'auth_mode' => 'firebase',
         ]);
     }
@@ -297,10 +349,7 @@ class AuthController extends Controller
         $user = Auth::user();
 
         if (!$user) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Unauthorized',
-            ], 401);
+            return $this->errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
         }
 
         try {
@@ -324,5 +373,73 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             return $this->errorResponse('FIREBASE_SYNC_FAILED', $e->getMessage(), 400);
         }
+    }
+
+    /**
+     * Refresh access token using refresh token.
+     */
+    public function refresh(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'refresh_token' => 'required|string',
+        ]);
+
+        $user = HybridGuard::validateRefreshToken($validated['refresh_token']);
+
+        if (!$user) {
+            return $this->errorResponse('INVALID_REFRESH_TOKEN', 'Invalid or expired refresh token', 401);
+        }
+
+        // Generate new tokens
+        $token = HybridGuard::generateLocalToken($user);
+        $refreshToken = HybridGuard::generateRefreshToken($user);
+
+        // Revoke old refresh token
+        HybridGuard::revokeRefreshToken($validated['refresh_token']);
+
+        return $this->successResponse([
+            'message' => 'Token refreshed successfully',
+            'user' => [
+                'id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role,
+            ],
+            'token' => $token,
+            'refresh_token' => $refreshToken,
+            'auth_mode' => 'local',
+        ]);
+    }
+
+    /**
+     * Unlock a user account (manager only).
+     */
+    public function unlockAccount(Request $request): JsonResponse
+    {
+        /** @var User|null $currentUser */
+        $currentUser = Auth::user();
+
+        $validated = $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+        ]);
+
+        $user = User::find($validated['user_id']);
+
+        if (!$user) {
+            return $this->errorResponse('USER_NOT_FOUND', 'User not found', 404);
+        }
+
+        // Reset login attempts and unlock
+        $user->resetLoginAttempts();
+
+        return $this->successResponse([
+            'message' => 'User account unlocked successfully',
+            'user' => [
+                'id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role,
+                'login_attempts' => $user->login_attempts,
+                'locked_until' => $user->locked_until,
+            ],
+        ]);
     }
 }

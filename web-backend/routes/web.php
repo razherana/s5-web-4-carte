@@ -12,6 +12,7 @@ Route::get('/', function () {
 Route::prefix('api/auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/refresh', [AuthController::class, 'refresh']);
 });
 
 // Protected auth routes
@@ -23,5 +24,6 @@ Route::middleware('auth.firebase')->prefix('api/auth')->group(function () {
 
 // Manager-only routes (requires Firebase auth + manager role)
 Route::middleware(['auth.firebase', 'manager'])->group(function () {
+    Route::post('/unlock-account', [AuthController::class, 'unlockAccount']);
     Route::post('/api/sync/signalements', [SyncController::class, 'syncSignalements']);
 });

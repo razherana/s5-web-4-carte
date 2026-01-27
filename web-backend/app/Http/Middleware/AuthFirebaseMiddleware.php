@@ -16,11 +16,15 @@ class AuthFirebaseMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Use Laravel's auth system with firebase guard
-        if (!Auth::guard('firebase')->check()) {
+        // Use Laravel's auth system with hybrid guard
+        if (!Auth::guard('hybrid')->check()) {
             return response()->json([
-                'error' => 'Unauthorized',
-                'message' => 'Authentication required'
+                'status' => 'error',
+                'data' => null,
+                'error' => [
+                    'code' => 'UNAUTHORIZED',
+                    'message' => 'Authentication required',
+                ],
             ], 401);
         }
 

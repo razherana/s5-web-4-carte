@@ -22,6 +22,8 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'login_attempts',
+        'locked_until',
     ];
 
     /**
@@ -49,7 +51,43 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'locked_until' => 'datetime',
         ];
+    }
+
+    /**
+     * Check if the account is locked.
+     */
+    public function isLocked(): bool
+    {
+        return $this->locked_until && $this->locked_until->isFuture();
+    }
+
+    /**
+     * Increment login attempts and lock account if needed.
+     */
+    public function incrementLoginAttempts(): void
+    {
+        $this->login_attempts++;
+
+        $maxAttempts = config('auth.max_login_attempts', 3);
+
+        if ($this->login_attempts >= $maxAttempts) {
+            $lockoutDuration = config('auth.lockout_duration', 900);
+            $this->locked_until = now()->addSeconds($lockoutDuration);
+        }
+
+        $this->save();
+    }
+
+    /**
+     * Reset login attempts.
+     */
+    public function resetLoginAttempts(): void
+    {
+        $this->login_attempts = 0;
+        $this->locked_until = null;
+        $this->save();
     }
 
     /**

@@ -22,11 +22,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Firebase-only guard
-        Auth::extend('firebase', function ($app, $name, array $config) {
-            return new FirebaseGuard($app['request']);
-        });
-
         // Hybrid guard (Firebase + Local fallback)
         Auth::extend('hybrid', function ($app, $name, array $config) {
             return new HybridGuard($app['request']);

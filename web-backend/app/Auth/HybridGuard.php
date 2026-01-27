@@ -7,6 +7,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
 use Kreait\Laravel\Firebase\Facades\Firebase;
 use Kreait\Firebase\Exception\Auth\FailedToVerifyToken;
 
@@ -15,6 +16,12 @@ class HybridGuard implements Guard
     protected ?Authenticatable $user = null;
     protected Request $request;
     protected bool $firebaseAvailable = true;
+
+    // JWT token lifetime in seconds (1 hour)
+    protected const JWT_LIFETIME = 3600;
+
+    // Refresh token lifetime in seconds (7 days)
+    protected const REFRESH_TOKEN_LIFETIME = 604800;
 
     public function __construct(Request $request)
     {
@@ -52,82 +59,52 @@ class HybridGuard implements Guard
             return null;
         }
 
-        // Check auth mode from header (firebase or local)
-        $authMode = $this->request->header('X-Auth-Mode', 'firebase');
-
-        if ($authMode === 'local') {
-            return $this->authenticateLocal($token);
-        }
-
-        return $this->authenticateFirebase($token);
+        // Always authenticate using JWT
+        return $this->authenticateLocal($token);
     }
 
     /**
-     * Authenticate using Firebase token.
-     */
-    protected function authenticateFirebase(string $token): ?Authenticatable
-    {
-        try {
-            $auth = Firebase::auth();
-            $verifiedIdToken = $auth->verifyIdToken($token);
-
-            // Get the Firebase user ID (uid) from the token
-            $uid = $verifiedIdToken->claims()->get('sub');
-
-            // Find user in our database
-            $this->user = User::where('firebase_uid', $uid)->first();
-
-            // Store Firebase info in request for additional use
-            if ($this->user) {
-                $this->request->attributes->set('firebase_uid', $uid);
-                $this->request->attributes->set('auth_mode', 'firebase');
-
-                try {
-                    $this->request->attributes->set('firebase_user', $auth->getUser($uid));
-                } catch (\Exception $e) {
-                    // Firebase user fetch failed, but token is valid
-                }
-            }
-
-            return $this->user;
-        } catch (FailedToVerifyToken $e) {
-            return null;
-        } catch (\Exception $e) {
-            // Firebase not available, try local auth as fallback
-            return $this->authenticateLocal($token);
-        }
-    }
-
-    /**
-     * Authenticate using local JWT-like token (base64 encoded user_id:timestamp:signature).
+     * Authenticate using local JWT token.
      */
     protected function authenticateLocal(string $token): ?Authenticatable
     {
         try {
-            $decoded = base64_decode($token);
-            $parts = explode(':', $decoded);
+            $payload = $this->verifyJWT($token);
 
-            if (count($parts) !== 3) {
+            if (!$payload) {
                 return null;
             }
 
-            [$userId, $timestamp, $signature] = $parts;
-
-            // Check if token is expired (24 hours)
-            if ((time() - (int)$timestamp) > 86400) {
+            // Check if token is expired
+            if (isset($payload['exp']) && time() > $payload['exp']) {
                 return null;
             }
 
-            // Verify signature
-            $expectedSignature = hash_hmac('sha256', $userId . ':' . $timestamp, config('app.key'));
-            if (!hash_equals($expectedSignature, $signature)) {
+            // Check if token is not yet valid
+            if (isset($payload['nbf']) && time() < $payload['nbf']) {
                 return null;
             }
 
-            $this->user = User::find($userId);
+            $this->user = User::find($payload['user_id']);
 
             if ($this->user) {
-                $this->request->attributes->set('auth_mode', 'local');
+                $authMode = $payload['auth_mode'] ?? 'local';
+                $this->request->attributes->set('auth_mode', $authMode);
+                $this->request->attributes->set('user', [
+                    'id' => $this->user->id,
+                    'email' => $this->user->email,
+                    'role' => $this->user->role,
+                    'firebase_uid' => $this->user->firebase_uid,
+                ]);
+
+                // Store Firebase token if present
+                if (isset($payload['firebase_token'])) {
+                    $this->request->attributes->set('firebase_token', $payload['firebase_token']);
+                }
+
+                if (isset($payload['firebase_uid'])) {
+                    $this->request->attributes->set('firebase_uid', $payload['firebase_uid']);
+                }
             }
 
             return $this->user;
@@ -137,13 +114,148 @@ class HybridGuard implements Guard
     }
 
     /**
-     * Generate a local auth token for a user.
+     * Generate JWT access token for a user.
      */
-    public static function generateLocalToken(User $user): string
+    public static function generateLocalToken(User $user, ?string $firebaseToken = null, string $authMode = 'local'): string
     {
-        $timestamp = time();
-        $signature = hash_hmac('sha256', $user->id . ':' . $timestamp, config('app.key'));
-        return base64_encode($user->id . ':' . $timestamp . ':' . $signature);
+        $now = time();
+        $payload = [
+            'iat' => $now, // Issued at
+            'nbf' => $now, // Not before
+            'exp' => $now + self::JWT_LIFETIME, // Expiration
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'role' => $user->role,
+            'auth_mode' => $authMode,
+        ];
+
+        // Include Firebase token and UID if provided
+        if ($firebaseToken) {
+            $payload['firebase_token'] = $firebaseToken;
+        }
+
+        if ($user->firebase_uid) {
+            $payload['firebase_uid'] = $user->firebase_uid;
+        }
+
+        return self::createJWT($payload);
+    }
+
+    /**
+     * Generate refresh token for a user.
+     */
+    public static function generateRefreshToken(User $user): string
+    {
+        $now = time();
+        $refreshToken = bin2hex(random_bytes(32));
+
+        // Store refresh token in cache with expiration
+        Cache::put(
+            'refresh_token:' . $refreshToken,
+            [
+                'user_id' => $user->id,
+                'created_at' => $now,
+            ],
+            self::REFRESH_TOKEN_LIFETIME
+        );
+
+        return $refreshToken;
+    }
+
+    /**
+     * Validate refresh token and return user.
+     */
+    public static function validateRefreshToken(string $refreshToken): ?User
+    {
+        $data = Cache::get('refresh_token:' . $refreshToken);
+
+        if (!$data || !isset($data['user_id'])) {
+            return null;
+        }
+
+        return User::find($data['user_id']);
+    }
+
+    /**
+     * Revoke refresh token.
+     */
+    public static function revokeRefreshToken(string $refreshToken): void
+    {
+        Cache::forget('refresh_token:' . $refreshToken);
+    }
+
+    /**
+     * Create JWT token from payload.
+     */
+    protected static function createJWT(array $payload): string
+    {
+        $header = [
+            'typ' => 'JWT',
+            'alg' => 'HS256',
+        ];
+
+        $headerEncoded = self::base64UrlEncode(json_encode($header));
+        $payloadEncoded = self::base64UrlEncode(json_encode($payload));
+
+        $signature = hash_hmac(
+            'sha256',
+            $headerEncoded . '.' . $payloadEncoded,
+            config('app.key'),
+            true
+        );
+
+        $signatureEncoded = self::base64UrlEncode($signature);
+
+        return $headerEncoded . '.' . $payloadEncoded . '.' . $signatureEncoded;
+    }
+
+    /**
+     * Verify and decode JWT token.
+     */
+    protected function verifyJWT(string $token): ?array
+    {
+        $parts = explode('.', $token);
+
+        if (count($parts) !== 3) {
+            return null;
+        }
+
+        [$headerEncoded, $payloadEncoded, $signatureEncoded] = $parts;
+
+        // Verify signature
+        $expectedSignature = hash_hmac(
+            'sha256',
+            $headerEncoded . '.' . $payloadEncoded,
+            config('app.key'),
+            true
+        );
+
+        $signature = self::base64UrlDecode($signatureEncoded);
+
+        if (!hash_equals($expectedSignature, $signature)) {
+            return null;
+        }
+
+        // Decode payload
+        $payload = json_decode(self::base64UrlDecode($payloadEncoded), true);
+
+        return $payload;
+    }
+
+    /**
+     * Base64 URL encode.
+     */
+    protected static function base64UrlEncode(string $data): string
+    {
+        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
+    }
+
+    /**
+     * Base64 URL decode.
+     */
+    protected static function base64UrlDecode(string $data): string
+    {
+        return base64_decode(strtr($data, '-_', '+/'));
     }
 
     /**

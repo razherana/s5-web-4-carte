@@ -11,14 +11,65 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Kreait\Laravel\Firebase\Facades\Firebase;
 
+use OpenApi\Attributes as OA;
+
 use function Laravel\Prompts\error;
 
 class AuthController extends Controller
 {
-    /**
-     * Register a new user.
-     * Automatically tries Firebase first if internet is available, falls back to local registration.
-     */
+    #[OA\Post(
+        path: '/api/auth/register',
+        tags: ['Authentication'],
+        summary: 'Register a new user',
+        description: 'Registers a new user. Tries Firebase first if internet is available, falls back to local registration.',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['email', 'password'],
+                properties: [
+                    new OA\Property(property: 'email', type: 'string', format: 'email', example: 'user@example.com'),
+                    new OA\Property(property: 'password', type: 'string', format: 'password', minLength: 6, example: 'password123'),
+                    new OA\Property(property: 'role', type: 'string', enum: ['user', 'manager'], example: 'user')
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'User registered successfully',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'status', type: 'string', example: 'success'),
+                        new OA\Property(
+                            property: 'data',
+                            properties: [
+                                new OA\Property(property: 'message', type: 'string', example: 'User registered successfully'),
+                                new OA\Property(
+                                    property: 'user',
+                                    properties: [
+                                        new OA\Property(property: 'id', type: 'integer', example: 1),
+                                        new OA\Property(property: 'email', type: 'string', example: 'user@example.com'),
+                                        new OA\Property(property: 'role', type: 'string', example: 'user')
+                                    ],
+                                    type: 'object'
+                                ),
+                                new OA\Property(property: 'token', type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'),
+                                new OA\Property(property: 'refresh_token', type: 'string', example: 'a1b2c3d4e5f6...'),
+                                new OA\Property(property: 'auth_mode', type: 'string', example: 'local')
+                            ],
+                            type: 'object'
+                        ),
+                        new OA\Property(property: 'error', type: 'null')
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation error',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')
+            )
+        ]
+    )]
     public function register(Request $request): JsonResponse
     {
         // Check if we have internet connectivity
@@ -126,10 +177,39 @@ class AuthController extends Controller
         ], 201);
     }
 
-    /**
-     * Login with email/password.
-     * Automatically tries Firebase first if internet is available, falls back to local auth.
-     */
+    #[OA\Post(
+        path: '/api/auth/login',
+        tags: ['Authentication'],
+        summary: 'Login with email and password',
+        description: 'Authenticates a user. Tries Firebase first if internet is available, falls back to local auth.',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['email', 'password'],
+                properties: [
+                    new OA\Property(property: 'email', type: 'string', format: 'email', example: 'user@example.com'),
+                    new OA\Property(property: 'password', type: 'string', format: 'password', example: 'password123')
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Login successful',
+                content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')
+            ),
+            new OA\Response(
+                response: 423,
+                description: 'Account locked due to too many failed attempts',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Invalid credentials',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')
+            )
+        ]
+    )]
     public function login(Request $request): JsonResponse
     {
         // Check if we have internet connectivity
@@ -300,9 +380,25 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Get the current authenticated user.
-     */
+    #[OA\Get(
+        path: '/api/auth/me',
+        tags: ['User'],
+        summary: 'Get current authenticated user',
+        description: 'Returns the currently authenticated user\'s information',
+        security: [['bearerAuth' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'User information retrieved successfully',
+                content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')
+            )
+        ]
+    )]
     public function me(Request $request): JsonResponse
     {
         /** @var User|null $user */
@@ -323,9 +419,20 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Logout (invalidate token on client side).
-     */
+    #[OA\Post(
+        path: '/api/auth/logout',
+        tags: ['Authentication'],
+        summary: 'Logout user',
+        description: 'Logs out the current user (client should remove the token)',
+        security: [['bearerAuth' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Logged out successfully',
+                content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')
+            )
+        ]
+    )]
     public function logout(): JsonResponse
     {
         // For stateless API, just return success
@@ -335,10 +442,39 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Sync local user with Firebase.
-     * Call this when coming back online.
-     */
+    #[OA\Post(
+        path: '/api/auth/sync-firebase',
+        tags: ['User'],
+        summary: 'Sync local user with Firebase',
+        description: 'Updates the user\'s Firebase UID when coming back online',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['firebase_token'],
+                properties: [
+                    new OA\Property(property: 'firebase_token', type: 'string', example: 'firebase.id.token.here')
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'User synced with Firebase successfully',
+                content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')
+            ),
+            new OA\Response(
+                response: 400,
+                description: 'Firebase sync failed',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')
+            )
+        ]
+    )]
     public function syncWithFirebase(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -375,9 +511,33 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Refresh access token using refresh token.
-     */
+    #[OA\Post(
+        path: '/api/auth/refresh',
+        tags: ['Authentication'],
+        summary: 'Refresh access token',
+        description: 'Generates new access and refresh tokens using a valid refresh token',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['refresh_token'],
+                properties: [
+                    new OA\Property(property: 'refresh_token', type: 'string', example: 'a1b2c3d4e5f6...')
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Token refreshed successfully',
+                content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Invalid or expired refresh token',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')
+            )
+        ]
+    )]
     public function refresh(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -410,9 +570,44 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Unlock a user account (manager only).
-     */
+    #[OA\Post(
+        path: '/unlock-account',
+        tags: ['User'],
+        summary: 'Unlock a user account (Manager only)',
+        description: 'Resets login attempts and unlocks a locked user account. Only managers can perform this action.',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['user_id'],
+                properties: [
+                    new OA\Property(property: 'user_id', type: 'integer', example: 2)
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'User account unlocked successfully',
+                content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden - Only managers can unlock accounts',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'User not found',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')
+            )
+        ]
+    )]
     public function unlockAccount(Request $request): JsonResponse
     {
         /** @var User|null $currentUser */

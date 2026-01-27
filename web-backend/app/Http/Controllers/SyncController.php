@@ -6,12 +6,34 @@ use App\Models\Signalement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Kreait\Laravel\Firebase\Facades\Firebase;
+use OpenApi\Attributes as OA;
 
 class SyncController extends Controller
 {
-    /**
-     * Sync signalements from PostgreSQL to Firestore.
-     */
+    #[OA\Post(
+        path: '/api/sync/signalements',
+        tags: ['Sync'],
+        summary: 'Sync signalements to Firestore (Manager only)',
+        description: 'Synchronizes signalements from PostgreSQL to Firestore. Only managers can perform this action.',
+        security: [['bearerAuth' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Sync completed successfully',
+                content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden - Only managers can sync data',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')
+            )
+        ]
+    )]
     public function syncSignalements(Request $request): JsonResponse
     {
         $firestore = Firebase::firestore()->database();

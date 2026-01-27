@@ -69,7 +69,7 @@
               </div>
             </button>
           </ion-menu-toggle>
-          <ion-menu-toggle auto-hide="false">
+          <!-- <ion-menu-toggle auto-hide="false">
             <button class="menu-item" @click="goToPage('/register')">
               <ion-icon :icon="personAddOutline"></ion-icon>
               <div>
@@ -77,7 +77,7 @@
                 <span>Inscription gratuite</span>
               </div>
             </button>
-          </ion-menu-toggle>
+          </ion-menu-toggle> -->
         </template>
 
         <template v-else>

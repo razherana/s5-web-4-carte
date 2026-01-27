@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "875716847528",
+    "project_id": "route-project-c44ce",
+    "storage_bucket": "route-project-c44ce.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:875716847528:android:d1a3b564140a6ca2419f9d",
+        "android_client_info": {
+          "package_name": "road.project"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "875716847528-hl2smdv3e7stpt3e68fpgoq2daremuac.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCM6ll8jms0MuS-WRIKJ8Lmrj50mQ4w8LU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "875716847528-hl2smdv3e7stpt3e68fpgoq2daremuac.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

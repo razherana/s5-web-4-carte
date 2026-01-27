@@ -59,7 +59,7 @@
             </div>
 
             <div class="auth-actions">
-              <button type="button" class="link-btn">Mot de passe oublié ?</button>
+              <!-- <button type="button" class="link-btn">Mot de passe oublié ?</button> -->
               <button type="button" class="link-btn ghost" @click="continueAsVisitor">Continuer en visiteur</button>
             </div>
 
@@ -72,10 +72,10 @@
           </form>
         </div>
 
-        <div class="auth-footer">
+        <!-- <div class="auth-footer">
           <span>Pas encore de compte ?</span>
           <button class="link-btn primary" @click="goToRegister">Créer un compte</button>
-        </div>
+        </div> -->
       </div>
     </ion-content>
   </ion-page>

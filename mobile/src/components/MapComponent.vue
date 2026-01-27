@@ -101,8 +101,6 @@ export default {
             map.value.on("click", handleMapClick);
           }
 
-          // Garder les animations désactivées pour éviter les erreurs Leaflet
-
           // Géolocalisation
           if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -152,6 +150,7 @@ export default {
           }
 
           mapInitialized.value = true;
+          console.log('🗺️ Carte initialisée');
           updateMarkers();
         } catch (error) {
           console.error("Erreur lors de la création de la carte:", error);
@@ -202,52 +201,83 @@ export default {
     };
 
     const updateMarkers = () => {
-      if (!map.value || !mapInitialized.value || mapDestroyed.value) return;
+      if (!map.value || !mapInitialized.value || mapDestroyed.value) {
+        console.log('⚠️ Impossible de mettre à jour les marqueurs - carte non prête');
+        return;
+      }
+
+      console.log('🔄 Mise à jour des marqueurs');
+      console.log('Nombre de signalements à afficher:', props.reports.length);
 
       // Supprimer les anciens marqueurs
       markers.value.forEach((marker) => {
-        if (marker) {
-          map.value.removeLayer(marker);
+        if (marker && map.value) {
+          try {
+            map.value.removeLayer(marker);
+          } catch (e) {
+            console.warn('Erreur lors de la suppression du marqueur:', e);
+          }
         }
       });
       markers.value = [];
 
       // Ajouter les nouveaux marqueurs
-      props.reports.forEach((report) => {
-        if (report.latitude && report.longitude) {
-          const markerColor = getMarkerColor(report.status);
-          const icon = L.icon({
-            iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${markerColor}.png`,
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowUrl:
-              "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-            shadowSize: [41, 41],
-          });
+      let addedCount = 0;
+      props.reports.forEach((report, index) => {
+        console.log(`Signalement ${index}:`, {
+          id: report.id,
+          title: report.title,
+          latitude: report.latitude,
+          longitude: report.longitude,
+          lat: report.lat,
+          lng: report.lng
+        });
 
-          const marker = L.marker(
-            [report.latitude || report.lat, report.longitude || report.lng],
-            { icon }
-          )
-            .addTo(map.value)
-            .bindPopup(
-              `
-                <strong>${report.title || "Signalement"}</strong><br>
-                ${report.description ? `<em>${report.description}</em><br>` : ""}
-                Statut: ${getStatusText(report.status)}<br>
-                ${report.surface ? `Surface: ${report.surface} m²<br>` : ""}
-                ${report.budget ? `Budget: ${report.budget} Ar<br>` : ""}
-                Type: ${report.problemType || "Non spécifié"}
-              `
-            )
-            .on("click", () => {
-              emit("marker-clicked", report);
+        // Vérifier à la fois latitude/longitude et lat/lng
+        const lat = report.latitude || report.lat;
+        const lng = report.longitude || report.lng;
+
+        if (lat && lng) {
+          try {
+            const markerColor = getMarkerColor(report.status);
+            const icon = L.icon({
+              iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${markerColor}.png`,
+              iconSize: [25, 41],
+              iconAnchor: [12, 41],
+              popupAnchor: [1, -34],
+              shadowUrl:
+                "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+              shadowSize: [41, 41],
             });
 
-          markers.value.push(marker);
+            const marker = L.marker([lat, lng], { icon })
+              .addTo(map.value)
+              .bindPopup(
+                `
+                  <strong>${report.title || "Signalement"}</strong><br>
+                  ${report.description ? `<em>${report.description}</em><br>` : ""}
+                  Statut: ${getStatusText(report.status)}<br>
+                  ${report.surface ? `Surface: ${report.surface} m²<br>` : ""}
+                  ${report.budget ? `Budget: ${report.budget} Ar<br>` : ""}
+                  Type: ${report.problemType || "Non spécifié"}
+                `
+              )
+              .on("click", () => {
+                emit("marker-clicked", report);
+              });
+
+            markers.value.push(marker);
+            addedCount++;
+            console.log(`✅ Marqueur ajouté pour le signalement ${report.id}`);
+          } catch (error) {
+            console.error(`❌ Erreur lors de l'ajout du marqueur ${report.id}:`, error);
+          }
+        } else {
+          console.warn(`⚠️ Signalement ${report.id} sans coordonnées valides`);
         }
       });
+
+      console.log(`✅ ${addedCount} marqueurs ajoutés sur ${props.reports.length} signalements`);
     };
 
     const getMarkerColor = (status) => {
@@ -355,17 +385,24 @@ export default {
 
     watch(
       () => props.reports,
-      () => {
+      (newReports, oldReports) => {
+        console.log('👀 Watch: Les signalements ont changé');
+        console.log('Anciens signalements:', oldReports?.length || 0);
+        console.log('Nouveaux signalements:', newReports?.length || 0);
+        
         if (map.value && mapInitialized.value && !mapDestroyed.value) {
           updateMarkers();
+        } else {
+          console.log('⚠️ Carte pas prête pour la mise à jour');
         }
       },
-      { deep: true }
+      { deep: true, immediate: false }
     );
 
     watch(
       () => props.canReport,
-      () => {
+      (newVal) => {
+        console.log('👀 Watch: canReport changé:', newVal);
         if (map.value && !mapDestroyed.value) {
           // Retirer l'ancien gestionnaire d'événements
           map.value.off("click");

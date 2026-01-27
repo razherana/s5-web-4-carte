@@ -7,6 +7,9 @@
         </ion-buttons>
         <ion-title>Carte intelligente</ion-title>
         <ion-buttons slot="end">
+          <ion-button class="icon-chip" @click="toggleShowMyReports" v-if="isLoggedIn">
+            <ion-icon :icon="showMyReportsOnly ? mapOutline : personOutline"></ion-icon>
+          </ion-button>
           <ion-button class="icon-chip" @click="toggleStats">
             <ion-icon :icon="statsChartOutline"></ion-icon>
           </ion-button>
@@ -50,11 +53,27 @@
           <div class="map-header">
             <div>
               <h2>Carte interactive</h2>
-              <p class="text-secondary">Touchez la carte pour ajouter un signalement.</p>
+              <p class="text-secondary" v-if="showMyReportsOnly">
+                Affichage de vos signalements uniquement
+              </p>
+              <p class="text-secondary" v-else>
+                Touchez la carte pour ajouter un signalement.
+              </p>
             </div>
             <div class="map-badges">
-              <span class="badge">{{ filteredReports.length }} signalements</span>
+              <span class="badge">{{ filteredReports.length }} 
+                {{ showMyReportsOnly ? 'mes signalements' : 'signalements' }}
+              </span>
               <span class="badge">Antananarivo</span>
+              <span 
+                class="badge filter-badge" 
+                v-if="showMyReportsOnly"
+                @click="toggleShowMyReports"
+                style="cursor: pointer; background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.08)); color: #f59e0b; border-color: rgba(245, 158, 11, 0.2);"
+              >
+                <ion-icon :icon="closeOutline" style="margin-right: 4px; font-size: 12px;"></ion-icon>
+                Filtré à mes signalements
+              </span>
             </div>
           </div>
           <div class="map-wrapper glass">
@@ -64,10 +83,15 @@
               @add-report="handleAddReport"
               @marker-clicked="handleMarkerClick"
               ref="mapComponent"
+              :key="mapKey"
             />
             <div class="map-overlay">
               <span class="chip">Cliquez pour signaler</span>
               <span class="chip" v-if="!isLoggedIn">Connexion requise</span>
+              <span class="chip" v-if="showMyReportsOnly" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.08));">
+                <ion-icon :icon="personOutline" style="margin-right: 4px; font-size: 12px;"></ion-icon>
+                Mes signalements
+              </span>
             </div>
           </div>
         </section>
@@ -107,9 +131,13 @@ import {
   listOutline,
   logOutOutline,
   logInOutline,
+  mapOutline,
+  personOutline,
+  closeOutline
 } from 'ionicons/icons';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { onIonViewDidEnter } from '@ionic/vue';
 import MapComponent from '@/components/MapComponent.vue';
 import ReportModal from '@/components/ReportModal.vue';
 import StatsCard from '@/components/StatsCard.vue';
@@ -142,21 +170,59 @@ export default {
     const showStats = ref(true);
     const reportModalOpen = ref(false);
     const selectedLocation = ref({ lat: -18.8792, lng: 47.5079 });
+    const showMyReportsOnly = ref(false);
+    const mapKey = ref(0);
 
     const currentUser = ref(authService.getCurrentUser());
 
     const isLoggedIn = computed(() => currentUser.value !== null);
-    const filteredReports = computed(() => reports.value);
+    
+    const filteredReports = computed(() => {
+      console.log('=== FILTRAGE DES SIGNALEMENTS ===');
+      console.log('Tous les signalements:', reports.value.length);
+      console.log('Mode filtre actif:', showMyReportsOnly.value);
+      console.log('Utilisateur connecté:', currentUser.value);
+      
+      if (showMyReportsOnly.value && currentUser.value) {
+        const filtered = reports.value.filter(report => {
+          const matchId = report.userId === currentUser.value.id;
+          const matchEmail = report.userEmail === currentUser.value.email;
+          
+          console.log(`Signalement ${report.id}:`, {
+            reportUserId: report.userId,
+            reportUserEmail: report.userEmail,
+            currentUserId: currentUser.value.id,
+            currentUserEmail: currentUser.value.email,
+            matchId,
+            matchEmail,
+            result: matchId || matchEmail
+          });
+          
+          return matchId || matchEmail;
+        });
+        
+        console.log('Signalements filtrés:', filtered.length);
+        return filtered;
+      }
+      
+      console.log('Retour de tous les signalements (pas de filtre)');
+      return reports.value;
+    });
+    
     const statistics = computed(() => reportService.calculateStats(reports.value));
 
     const loadReports = async () => {
+      console.log('🔄 Chargement des signalements...');
       loading.value = true;
 
       const result = await reportService.getAllReports();
 
       if (result.success) {
         reports.value = result.data;
+        console.log('✅ Signalements chargés:', reports.value.length);
+        console.log('Premier signalement:', reports.value[0]);
       } else {
+        console.error('❌ Erreur lors du chargement des signalements');
         const alert = await alertController.create({
           header: 'Erreur',
           message: 'Impossible de charger les signalements',
@@ -168,8 +234,26 @@ export default {
       loading.value = false;
     };
 
+    const updateUserState = () => {
+      // Mettre à jour l'état de l'utilisateur à chaque fois que la page est affichée
+      currentUser.value = authService.getCurrentUser();
+      console.log('👤 État utilisateur mis à jour:', currentUser.value);
+    };
+
     const toggleStats = () => {
       showStats.value = !showStats.value;
+    };
+
+    const toggleShowMyReports = () => {
+      if (!isLoggedIn.value) {
+        goToLogin();
+        return;
+      }
+      showMyReportsOnly.value = !showMyReportsOnly.value;
+      console.log('🔀 Basculement du filtre:', showMyReportsOnly.value);
+      
+      // Forcer la mise à jour du composant carte
+      mapKey.value++;
     };
 
     const handleAddReport = (location) => {
@@ -211,6 +295,9 @@ export default {
 
     const handleReportCreated = async () => {
       await loadReports();
+      // Si on était en mode "mes signalements", on y reste
+      showMyReportsOnly.value = true;
+      mapKey.value++;
     };
 
     const handleMarkerClick = (report) => {
@@ -231,6 +318,8 @@ export default {
             handler: async () => {
               await authService.logout();
               currentUser.value = null;
+              showMyReportsOnly.value = false;
+              mapKey.value++;
               router.push('/login');
             },
           },
@@ -240,9 +329,22 @@ export default {
       await alert.present();
     };
 
-    onMounted(() => {
+    // Surveiller les changements de filteredReports
+    watch(filteredReports, (newVal) => {
+      console.log('📊 Mise à jour des signalements filtrés:', newVal.length);
+    });
+
+    // Hook Ionic appelé à chaque fois que la vue est affichée
+    onIonViewDidEnter(() => {
+      console.log('📱 Vue entrée (onIonViewDidEnter)');
+      updateUserState();
       loadReports();
-      currentUser.value = authService.getCurrentUser();
+    });
+
+    onMounted(() => {
+      console.log('🎬 Composant monté (onMounted)');
+      updateUserState();
+      loadReports();
     });
 
     return {
@@ -251,11 +353,14 @@ export default {
       showStats,
       reportModalOpen,
       selectedLocation,
+      showMyReportsOnly,
       isLoggedIn,
       filteredReports,
       statistics,
       mapComponent,
+      mapKey,
       toggleStats,
+      toggleShowMyReports,
       handleAddReport,
       closeReportModal,
       handleReportCreated,
@@ -267,6 +372,9 @@ export default {
       listOutline,
       logOutOutline,
       logInOutline,
+      mapOutline,
+      personOutline,
+      closeOutline
     };
   },
 };
@@ -303,11 +411,19 @@ export default {
 }
 
 .hero::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 55%),
-    radial-gradient(circle at bottom left, rgba(14, 165, 233, 0.08), transparent 50%);
+  background: radial-gradient(
+      circle at top right,
+      rgba(37, 99, 235, 0.12),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at bottom left,
+      rgba(14, 165, 233, 0.08),
+      transparent 50%
+    );
   z-index: 0;
 }
 
@@ -372,7 +488,11 @@ export default {
   align-items: center;
   padding: 6px 14px;
   border-radius: var(--app-radius-full);
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.08));
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.12),
+    rgba(37, 99, 235, 0.08)
+  );
   color: #2563eb;
   font-size: 0.8rem;
   font-weight: 700;
@@ -428,5 +548,11 @@ export default {
 .loader-overlay ion-spinner {
   --color: #2563eb;
   transform: scale(1.5);
+}
+
+.filter-badge:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
 }
 </style>

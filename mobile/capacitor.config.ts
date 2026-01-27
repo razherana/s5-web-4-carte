@@ -2,7 +2,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.roadwork.antananarivo',
+  appId: 'road.project',
   appName: 'Travaux Routiers',
   webDir: 'dist',
   server: {

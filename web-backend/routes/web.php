@@ -20,10 +20,12 @@ Route::middleware('auth.firebase')->prefix('api/auth')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/sync-firebase', [AuthController::class, 'syncWithFirebase']);
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
 });
 
 // Manager-only routes (requires Firebase auth + manager role)
 Route::middleware(['auth.firebase', 'manager'])->group(function () {
     Route::post('/unlock-account', [AuthController::class, 'unlockAccount']);
     Route::post('/api/sync/signalements', [SyncController::class, 'syncSignalements']);
+    Route::post('/api/sync/users', [SyncController::class, 'syncUsers']);
 });

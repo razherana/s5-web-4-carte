@@ -104,6 +104,7 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'] ?? 'user',
             'firebase_uid' => null,
+            'synced' => 'created',
         ]);
 
         $token = HybridGuard::generateLocalToken($user);
@@ -157,6 +158,7 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'] ?? 'user',
+            'synced' => 'synced',
         ]);
 
         // Generate our JWT with Firebase token embedded
@@ -346,6 +348,7 @@ class AuthController extends Controller
                     'email' => $firebaseUser->email,
                     'password' => Hash::make($validated['password']), // hash of password
                     'role' => 'user',
+                    'synced' => 'synced',
                 ]);
             }
         } else {
@@ -634,6 +637,88 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'login_attempts' => $user->login_attempts,
                 'locked_until' => $user->locked_until,
+            ],
+        ]);
+    }
+
+    #[OA\Put(
+        path: '/api/auth/profile',
+        tags: ['User'],
+        summary: 'Update user profile',
+        description: 'Updates the authenticated user\'s profile information',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: 'email', type: 'string', format: 'email', example: 'newemail@example.com'),
+                    new OA\Property(property: 'password', type: 'string', example: 'newpassword123'),
+                    new OA\Property(property: 'current_password', type: 'string', example: 'currentpassword123', description: 'Required when changing password'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Profile updated successfully',
+                content: new OA\JsonContent(ref: '#/components/schemas/SuccessResponse')
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation error',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorResponse')
+            )
+        ]
+    )]
+    public function updateProfile(Request $request): JsonResponse
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        if (!$user) {
+            return $this->errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
+        }
+
+        $validated = $request->validate([
+            'email' => 'sometimes|email|unique:users,email,' . $user->id,
+            'password' => 'sometimes|min:6',
+            'current_password' => 'required_with:password',
+        ]);
+
+        // If password is being changed, verify current password
+        if (isset($validated['password'])) {
+            if (!isset($validated['current_password']) || !Hash::check($validated['current_password'], $user->password)) {
+                throw ValidationException::withMessages([
+                    'current_password' => ['The current password is incorrect.'],
+                ]);
+            }
+            $user->password = Hash::make($validated['password']);
+        }
+
+        // Update email if provided
+        if (isset($validated['email'])) {
+            $user->email = $validated['email'];
+        }
+
+        // Mark user as updated for sync
+        if ($user->isDirty()) {
+            $user->synced = 'updated';
+            $user->save();
+        }
+
+        return $this->successResponse([
+            'message' => 'Profile updated successfully',
+            'user' => [
+                'id' => $user->id,
+                'email' => $user->email,
+                'role' => $user->role,
+                'firebase_uid' => $user->firebase_uid,
+                'synced' => $user->synced,
             ],
         ]);
     }

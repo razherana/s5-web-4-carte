@@ -1,5 +1,5 @@
 <template>
-  <ion-menu side="start" content-id="main-content" class="menu-shell">
+  <ion-menu side="start" content-id="main-content" class="menu-shell" @ionDidOpen="onMenuOpen" @ionDidClose="onMenuClose">
     <ion-content>
       <div class="menu-hero glass-strong">
         <div class="brand-row">
@@ -17,8 +17,8 @@
             <span>{{ userInitials }}</span>
           </div>
           <div class="profile-info">
-            <h2>{{ currentUser?.displayName || 'Bienvenue' }}</h2>
-            <p>{{ currentUser?.email || 'Connectez-vous pour personnaliser votre expérience.' }}</p>
+            <h2 class="profile-name">{{ currentUser?.displayName || 'Bienvenue' }}</h2>
+            <p class="profile-email">{{ currentUser?.email || 'Connectez-vous pour personnaliser votre expérience.' }}</p>
           </div>
         </div>
       </div>
@@ -214,6 +214,27 @@ export default {
       await alert.present();
     };
 
+    const onMenuOpen = () => {
+      const backdrop = document.querySelector('ion-backdrop');
+      if (backdrop) {
+        backdrop.style.backdropFilter = 'blur(8px)';
+        backdrop.style.webkitBackdropFilter = 'blur(8px)';
+      }
+      
+      const mainContent = document.getElementById('main-content');
+      if (mainContent) {
+        mainContent.style.filter = 'blur(4px)';
+        mainContent.style.transition = 'filter 0.3s ease';
+      }
+    };
+
+    const onMenuClose = () => {
+      const mainContent = document.getElementById('main-content');
+      if (mainContent) {
+        mainContent.style.filter = 'none';
+      }
+    };
+
     onMounted(() => {
       currentUser.value = authService.getCurrentUser();
       loadUserReports();
@@ -226,6 +247,8 @@ export default {
       userInitials,
       goToPage,
       handleLogout,
+      onMenuOpen,
+      onMenuClose,
       navigateCircleOutline,
       mapOutline,
       documentTextOutline,
@@ -329,11 +352,21 @@ ion-content {
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
 }
 
+.profile-info {
+  flex: 1;
+  min-width: 0; /* Crucial pour que text-overflow fonctionne */
+  overflow: hidden;
+}
+
 .profile-info h2 {
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
   color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .profile-info p {
@@ -341,6 +374,10 @@ ion-content {
   font-size: 0.75rem;
   color: #64748b;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .menu-section {
@@ -479,7 +516,8 @@ ion-content {
 
 .profile-info {
   flex: 1;
-  min-width: 0;
+  min-width: 0; /* Crucial pour que text-overflow fonctionne */
+  overflow: hidden;
 }
 
 .profile-name {
@@ -490,6 +528,7 @@ ion-content {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
 }
 
 .profile-email {
@@ -499,6 +538,7 @@ ion-content {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
 }
 
 /* Guest Card */
@@ -711,5 +751,12 @@ ion-content {
 
 .footer-info ion-icon {
   font-size: 16px;
+}
+
+/* Styles globaux pour le backdrop du menu */
+ion-menu::part(backdrop) {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 </style>

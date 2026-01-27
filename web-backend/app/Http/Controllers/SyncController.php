@@ -60,8 +60,7 @@ class SyncController extends Controller
             }
         }
 
-        return response()->json([
-            'success' => true,
+        return $this->successResponse([
             'message' => 'Sync completed',
             'results' => $results,
         ]);

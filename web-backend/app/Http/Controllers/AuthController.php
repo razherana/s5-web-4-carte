@@ -12,7 +12,6 @@ use Illuminate\Validation\ValidationException;
 use Kreait\Laravel\Firebase\Facades\Firebase;
 
 use function Laravel\Prompts\error;
-use function Laravel\Prompts\note;
 
 class AuthController extends Controller
 {
@@ -27,6 +26,8 @@ class AuthController extends Controller
             try {
                 return $this->registerWithFirebase($request);
             } catch (\Exception $e) {
+                // Check if the exception is due to error in auth
+                error($e->getMessage());
                 // Firebase failed, fall back to local registration
                 return $this->registerLocal($request);
             }
@@ -43,21 +44,20 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:6|confirmed',
+            'password' => 'required|min:6',
             'role' => 'sometimes|string|in:user,manager',
         ]);
 
         $user = User::create([
             'email' => $validated['email'],
-            'password' => $validated['password'],
+            'password' => Hash::make($validated['password']),
             'role' => $validated['role'] ?? 'user',
             'firebase_uid' => null,
         ]);
 
         $token = HybridGuard::generateLocalToken($user);
 
-        return response()->json([
-            'success' => true,
+        return $this->successResponse([
             'message' => 'User registered successfully',
             'user' => [
                 'id' => $user->id,
@@ -106,8 +106,7 @@ class AuthController extends Controller
             'role' => $validated['role'] ?? 'user',
         ]);
 
-        return response()->json([
-            'success' => true,
+        return $this->successResponse([
             'message' => 'User registered successfully with Firebase',
             'user' => [
                 'id' => $user->id,
@@ -179,8 +178,7 @@ class AuthController extends Controller
 
         $token = HybridGuard::generateLocalToken($user);
 
-        return response()->json([
-            'success' => true,
+        return $this->successResponse([
             'message' => 'Login successful',
             'user' => [
                 'id' => $user->id,
@@ -237,8 +235,7 @@ class AuthController extends Controller
             }
         }
 
-        return response()->json([
-            'success' => true,
+        return $this->successResponse([
             'message' => 'Firebase authentication successful',
             'user' => [
                 'id' => $user->id,
@@ -260,14 +257,10 @@ class AuthController extends Controller
         $user = Auth::user();
 
         if (!$user) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Unauthorized',
-            ], 401);
+            return $this->errorResponse('UNAUTHORIZED', 'Unauthorized', 401);
         }
 
-        return response()->json([
-            'success' => true,
+        return $this->successResponse([
             'user' => [
                 'id' => $user->id,
                 'email' => $user->email,
@@ -285,8 +278,7 @@ class AuthController extends Controller
     {
         // For stateless API, just return success
         // Client should remove the token
-        return response()->json([
-            'success' => true,
+        return $this->successResponse([
             'message' => 'Logged out successfully',
         ]);
     }
@@ -320,8 +312,7 @@ class AuthController extends Controller
             $user->firebase_uid = $uid;
             $user->save();
 
-            return response()->json([
-                'success' => true,
+            return $this->successResponse([
                 'message' => 'User synced with Firebase',
                 'user' => [
                     'id' => $user->id,
@@ -331,11 +322,7 @@ class AuthController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Firebase sync failed',
-                'message' => $e->getMessage(),
-            ], 400);
+            return $this->errorResponse('FIREBASE_SYNC_FAILED', $e->getMessage(), 400);
         }
     }
 }

@@ -17,6 +17,13 @@ import './AppShell.css';
 const AppShell = ({ title, subtitle, actions, children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, isAuthenticated, isManager, logout } = useAuth();
+  console.log('User in AppShell:', user);
+
+  let userEmail = user?.email || 'Guest';
+  if(userEmail.length > 13) {
+    userEmail = userEmail.substring(0, 13) + '...';
+  }
+
   const navigate = useNavigate();
 
   const navigation = useMemo(() => {
@@ -43,8 +50,8 @@ const AppShell = ({ title, subtitle, actions, children }) => {
     return true;
   });
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
 
@@ -92,7 +99,7 @@ const AppShell = ({ title, subtitle, actions, children }) => {
               <FaUserCircle />
             </div>
             <div>
-              <p className="user-name">{user?.name || 'Guest User'}</p>
+              <p className="user-name">{userEmail || 'Guest User'}</p>
               <p className="user-role">{user?.role || 'Visitor mode'}</p>
             </div>
           </div>

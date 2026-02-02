@@ -135,7 +135,7 @@ class SyncController extends Controller
     public function syncUsers(Request $request): JsonResponse
     {
         $firestore = Firebase::firestore()->database();
-        $collection = $firestore->collection('users');
+        $collection = $firestore->collection('cartes');
 
         $results = [
             'created' => 0,

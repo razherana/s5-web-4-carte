@@ -705,9 +705,42 @@ class AuthController extends Controller
             $user->email = $validated['email'];
         }
 
-        // Mark user as updated for sync
+        // Try to update Firebase if user has a Firebase UID and we have internet
+        $firebaseSynced = false;
+        if ($user->firebase_uid && $this->hasInternetConnection()) {
+            try {
+                $auth = Firebase::auth();
+                $updateProperties = [];
+
+                // Update email in Firebase if changed
+                if (isset($validated['email'])) {
+                    $updateProperties['email'] = $validated['email'];
+                }
+
+                // Update password in Firebase if changed
+                if (isset($validated['password'])) {
+                    $updateProperties['password'] = $validated['password'];
+                }
+
+                if (!empty($updateProperties)) {
+                    $auth->updateUser($user->firebase_uid, $updateProperties);
+                    $firebaseSynced = true;
+                }
+            } catch (\Exception $e) {
+                // Log the error but continue with local update
+                error('Firebase update failed: ' . $e->getMessage());
+                // Mark as needing sync later
+                $user->synced = 'updated';
+            }
+        }
+
+        // Mark user as updated for sync if not synced with Firebase
         if ($user->isDirty()) {
-            $user->synced = 'updated';
+            if ($firebaseSynced) {
+                $user->synced = 'synced';
+            } else {
+                $user->synced = 'updated';
+            }
             $user->save();
         }
 
@@ -720,6 +753,7 @@ class AuthController extends Controller
                 'firebase_uid' => $user->firebase_uid,
                 'synced' => $user->synced,
             ],
+            'firebase_synced' => $firebaseSynced,
         ]);
     }
 }

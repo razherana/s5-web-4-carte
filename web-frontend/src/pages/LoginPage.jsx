@@ -26,25 +26,11 @@ const LoginPage = () => {
         navigate('/visitor/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async () => {
-    const demoEmail = 'manager@demo.local';
-    const demoPassword = 'Manager123!';
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    setError('');
-    setLoading(true);
-
-    try {
-      await login(demoEmail, demoPassword);
-      navigate('/manager/dashboard');
-    } catch (err) {
-      setError('Demo login failed. Please try again.');
+      // Handle backend error format: { status: 'error', error: { code, message } }
+      const errorMessage = err.response?.data?.error?.message 
+        || err.response?.data?.message 
+        || 'Login failed. Please check your credentials.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -105,32 +91,6 @@ const LoginPage = () => {
             )}
           </button>
         </form>
-
-        <div className="demo-access glass-card">
-          <div className="demo-header">
-            <FaUserShield />
-            <span>Manager Demo Access</span>
-          </div>
-          <div className="demo-credentials">
-            <div className="demo-row">
-              <span className="demo-label">Email</span>
-              <span className="demo-value">manager@demo.local</span>
-            </div>
-            <div className="demo-row">
-              <span className="demo-label">Password</span>
-              <span className="demo-value">Manager123!</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="glass-button demo-button"
-            onClick={handleDemoLogin}
-            disabled={loading}
-          >
-            <FaKey />
-            <span>Use demo manager</span>
-          </button>
-        </div>
 
         <div className="auth-footer">
           <p className="text-muted">

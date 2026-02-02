@@ -37,7 +37,11 @@ const RegisterPage = () => {
       await register(formData);
       navigate('/visitor/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      // Handle backend error format: { status: 'error', error: { code, message } }
+      const errorMessage = err.response?.data?.error?.message 
+        || err.response?.data?.message 
+        || 'Registration failed. Please try again.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

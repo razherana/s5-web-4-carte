@@ -239,6 +239,12 @@ body::before {
   color: var(--text-muted);
 }
 
+.disabled-input {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;

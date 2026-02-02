@@ -1,15 +1,18 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import AppShell from '../components/AppShell';
-import MapComponent from '../components/MapComponent';
-import StatsCard from '../components/StatsCard';
-import { reportService } from '../services/reportService';
-import './Dashboard.css';
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import AppShell from "../components/AppShell";
+import MapComponent from "../components/MapComponent";
+import StatsCard from "../components/StatsCard";
+import { reportService } from "../services/reportService";
+import "./Dashboard.css";
+import { useAuth } from "../contexts/AuthContext";
 
 const VisitorDashboard = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     loadReports();
@@ -20,10 +23,10 @@ const VisitorDashboard = () => {
       setLoading(true);
       const data = await reportService.getAllReports();
       setReports(data);
-      setError('');
+      setError("");
     } catch (err) {
-      setError('Failed to load reports. Please try again.');
-      console.error('Error loading reports:', err);
+      setError("Failed to load reports. Please try again.");
+      console.error("Error loading reports:", err);
     } finally {
       setLoading(false);
     }
@@ -42,19 +45,17 @@ const VisitorDashboard = () => {
 
   return (
     <AppShell
-      title="Visitor Dashboard"
-      subtitle="Explore live reports and city insights in read-only mode"
+      title="Dashboard"
+      subtitle="Explore live reports and city insights"
       actions={
-        <Link to="/login" className="btn-primary">
-          Sign In to Manage
-        </Link>
+        !isAuthenticated && (
+          <Link to="/login" className="btn-primary">
+            Sign In to Manage
+          </Link>
+        )
       }
     >
-      {error && (
-        <div className="alert alert-error">
-          {error}
-        </div>
-      )}
+      {error && <div className="alert alert-error">{error}</div>}
 
       <div className="dashboard-grid">
         <section className="dashboard-hero glass-card">

@@ -68,21 +68,6 @@ const CreateUserPage = () => {
         <form onSubmit={handleSubmit} className="management-form">
           <div className="form-grid">
             <div className="form-group">
-              <label htmlFor="name" className="form-label">Full Name</label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className="glass-input"
-                placeholder="Enter full name"
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <div className="form-group">
               <label htmlFor="email" className="form-label">Email</label>
               <input
                 type="email"

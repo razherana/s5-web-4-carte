@@ -165,7 +165,7 @@ class AuthController extends Controller
         $token = HybridGuard::generateLocalToken($user, $idToken, 'firebase');
         $refreshToken = HybridGuard::generateRefreshToken($user);
 
-        new SyncController()->syncUsers($request); // Trigger sync after registration
+        new SyncController()->syncUsersManually($user, $uid); // Trigger sync after registration
 
         return $this->successResponse([
             'message' => 'User registered successfully with Firebase',

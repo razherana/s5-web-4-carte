@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import MapComponent from '../components/MapComponent';
+import ReportCreateModal from '../components/ReportCreateModal';
 import StatsCard from '../components/StatsCard';
 import { reportService } from '../services/reportService';
 import { userService } from '../services/userService';
@@ -16,6 +17,8 @@ const ManagerDashboard = () => {
   const [syncingUsers, setSyncingUsers] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -74,6 +77,11 @@ const ManagerDashboard = () => {
 
   const handleReportClick = (report) => {
     navigate('/manager/reports/edit', { state: { report } });
+  };
+
+  const handleAddReport = (location) => {
+    setSelectedLocation(location);
+    setIsCreateOpen(true);
   };
 
   if (loading) {
@@ -207,14 +215,25 @@ const ManagerDashboard = () => {
                 <span>Completed</span>
               </div>
             </div>
+            <div className="map-helper">
+              <span>Astuce :</span> cliquez sur la carte pour déposer un marqueur, puis cliquez sur le marqueur pour signaler.
+            </div>
           </div>
           <MapComponent
             reports={reports}
             readOnly={false}
             onReportClick={handleReportClick}
+            canAddReport={true}
+            onAddReport={handleAddReport}
           />
         </section>
       </div>
+      <ReportCreateModal
+        isOpen={isCreateOpen}
+        location={selectedLocation}
+        onClose={() => setIsCreateOpen(false)}
+        onCreated={loadReports}
+      />
     </AppShell>
   );
 };

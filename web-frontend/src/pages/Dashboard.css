@@ -183,6 +183,20 @@
   flex-wrap: wrap;
 }
 
+.map-helper {
+  width: 100%;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.map-helper span {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .legend-item {
   display: flex;
   align-items: center;

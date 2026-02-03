@@ -3,10 +3,11 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './MapComponent.css';
 
-const MapComponent = ({ reports, onReportClick, readOnly = false }) => {
+const MapComponent = ({ reports, onReportClick, readOnly = false, canAddReport = false, onAddReport }) => {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markersRef = useRef([]);
+  const tempMarkerRef = useRef(null);
 
   // Status colors and icons
   const getMarkerColor = (status) => {
@@ -80,6 +81,66 @@ const MapComponent = ({ reports, onReportClick, readOnly = false }) => {
     };
   }, []);
 
+  const clearTempMarker = () => {
+    if (tempMarkerRef.current && mapInstance.current) {
+      tempMarkerRef.current.remove();
+      tempMarkerRef.current = null;
+    }
+  };
+
+  const createTempMarkerIcon = () => {
+    return L.icon({
+      iconUrl:
+        'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      shadowSize: [41, 41],
+    });
+  };
+
+  const handleMapClick = (event) => {
+    if (!mapInstance.current || !canAddReport) return;
+
+    const { lat, lng } = event.latlng;
+    clearTempMarker();
+
+    tempMarkerRef.current = L.marker([lat, lng], {
+      icon: createTempMarkerIcon(),
+      draggable: true,
+    })
+      .addTo(mapInstance.current)
+      .bindPopup('Nouveau signalement<br/>Cliquez sur le marqueur pour confirmer')
+      .openPopup()
+      .on('click', () => {
+        const currentPosition = tempMarkerRef.current?.getLatLng();
+        if (onAddReport) {
+          onAddReport({
+            lat: currentPosition?.lat ?? lat,
+            lng: currentPosition?.lng ?? lng,
+          });
+        }
+        clearTempMarker();
+      });
+  };
+
+  useEffect(() => {
+    if (!mapInstance.current) return;
+
+    mapInstance.current.off('click', handleMapClick);
+
+    if (canAddReport) {
+      mapInstance.current.on('click', handleMapClick);
+    }
+
+    return () => {
+      if (mapInstance.current) {
+        mapInstance.current.off('click', handleMapClick);
+      }
+    };
+  }, [canAddReport, onAddReport]);
+
   useEffect(() => {
     if (!mapInstance.current || !reports) return;
 
@@ -89,8 +150,11 @@ const MapComponent = ({ reports, onReportClick, readOnly = false }) => {
 
     // Add new markers
     reports.forEach((report) => {
-      if (report.latitude && report.longitude) {
-        const marker = L.marker([report.latitude, report.longitude], {
+      const latitude = report.latitude ?? report.lat;
+      const longitude = report.longitude ?? report.lng;
+
+      if (latitude && longitude) {
+        const marker = L.marker([latitude, longitude], {
           icon: createCustomIcon(report.status),
         });
 

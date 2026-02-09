@@ -1,0 +1,81 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: web_db
+    environment:
+      POSTGRES_DB: web_backend
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./web-backend
+      dockerfile: Dockerfile
+    container_name: web_backend
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: web_backend
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      FIREBASE_CREDENTIALS: /var/www/html/firebase-private-key.json
+      GOOGLE_APPLICATION_CREDENTIALS: /var/www/html/firebase-private-key.json
+    volumes:
+      - ./web-backend:/var/www/html
+    depends_on:
+      - db
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: web_nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - ./web-backend:/var/www/html
+      - ./web-backend/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+
+  frontend:
+    build:
+      context: ./web-frontend
+      dockerfile: Dockerfile
+    container_name: web_frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api
+      VITE_TILE_SERVER_URL: http://localhost:8080
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./web-frontend:/app
+      - /app/node_modules
+    depends_on:
+      - nginx
+
+  tileserver:
+    image: overv/openstreetmap-tile-server
+    container_name: osm-tileserver
+    platform: linux/amd64
+    volumes:
+      - osm-data:/data/database/
+      - ./web-carte/maps/data/region.osm.pbf:/data/region.osm.pbf
+    ports:
+      - "8080:80"
+    environment:
+      - OSM2PGSQL_EXTRA_ARGS=-C 2048
+      - THREADS=4
+    command: run
+    shm_size: 2g
+
+volumes:
+  db_data:
+  osm-data:

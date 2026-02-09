@@ -30,4 +30,9 @@ export const userService = {
     const response = await api.delete(`/users/${id}`);
     return response.data;
   },
+
+  async syncWithFirebase() {
+    const response = await api.post('/sync/users');
+    return response.data;
+  },
 };

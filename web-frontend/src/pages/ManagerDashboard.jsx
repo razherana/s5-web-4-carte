@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import MapComponent from '../components/MapComponent';
+import ReportCreateModal from '../components/ReportCreateModal';
 import StatsCard from '../components/StatsCard';
 import { reportService } from '../services/reportService';
+import { userService } from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
 import { FaSyncAlt, FaUserCog, FaUsers } from 'react-icons/fa';
 import './Dashboard.css';
@@ -12,8 +14,11 @@ const ManagerDashboard = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [syncingUsers, setSyncingUsers] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -53,8 +58,30 @@ const ManagerDashboard = () => {
     }
   };
 
+  const handleSyncUsers = async () => {
+    setSyncingUsers(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      await userService.syncWithFirebase();
+      setMessage({ type: 'success', text: 'Successfully synced users with Firebase!' });
+    } catch (err) {
+      setMessage({ 
+        type: 'error', 
+        text: err.response?.data?.message || 'User sync failed. Please try again.' 
+      });
+    } finally {
+      setSyncingUsers(false);
+    }
+  };
+
   const handleReportClick = (report) => {
     navigate('/manager/reports/edit', { state: { report } });
+  };
+
+  const handleAddReport = (location) => {
+    setSelectedLocation(location);
+    setIsCreateOpen(true);
   };
 
   if (loading) {
@@ -73,23 +100,42 @@ const ManagerDashboard = () => {
       title="Manager Dashboard"
       subtitle={`Welcome back, ${user?.name || 'Manager'}`}
       actions={
-        <button
-          onClick={handleSync}
-          className="glass-button"
-          disabled={syncing}
-        >
-          {syncing ? (
-            <>
-              <div className="spinner-small"></div>
-              <span>Syncing...</span>
-            </>
-          ) : (
-            <>
-              <span className="button-icon"><FaSyncAlt /></span>
-              <span>Sync Firebase</span>
-            </>
-          )}
-        </button>
+        <>
+          <button
+            onClick={handleSync}
+            className="glass-button"
+            disabled={syncing}
+          >
+            {syncing ? (
+              <>
+                <div className="spinner-small"></div>
+                <span>Syncing...</span>
+              </>
+            ) : (
+              <>
+                <span className="button-icon"><FaSyncAlt /></span>
+                <span>Sync Reports</span>
+              </>
+            )}
+          </button>
+          <button
+            onClick={handleSyncUsers}
+            className="glass-button"
+            disabled={syncingUsers}
+          >
+            {syncingUsers ? (
+              <>
+                <div className="spinner-small"></div>
+                <span>Syncing...</span>
+              </>
+            ) : (
+              <>
+                <span className="button-icon"><FaUsers /></span>
+                <span>Sync Users</span>
+              </>
+            )}
+          </button>
+        </>
       }
     >
       {error && (
@@ -169,14 +215,25 @@ const ManagerDashboard = () => {
                 <span>Completed</span>
               </div>
             </div>
+            <div className="map-helper">
+              <span>Astuce :</span> cliquez sur la carte pour déposer un marqueur, puis cliquez sur le marqueur pour signaler.
+            </div>
           </div>
           <MapComponent
             reports={reports}
             readOnly={false}
             onReportClick={handleReportClick}
+            canAddReport={true}
+            onAddReport={handleAddReport}
           />
         </section>
       </div>
+      <ReportCreateModal
+        isOpen={isCreateOpen}
+        location={selectedLocation}
+        onClose={() => setIsCreateOpen(false)}
+        onCreated={loadReports}
+      />
     </AppShell>
   );
 };

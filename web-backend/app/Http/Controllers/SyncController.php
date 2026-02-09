@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Kreait\Laravel\Firebase\Facades\Firebase;
 use OpenApi\Attributes as OA;
 
+use function Laravel\Prompts\error;
+
 class SyncController extends Controller
 {
     #[OA\Post(
@@ -135,7 +137,7 @@ class SyncController extends Controller
     public function syncUsers(Request $request): JsonResponse
     {
         $firestore = Firebase::firestore()->database();
-        $collection = $firestore->collection('cartes');
+        $collection = $firestore->collection('users');
 
         $results = [
             'created' => 0,
@@ -182,10 +184,30 @@ class SyncController extends Controller
             }
         }
 
+        error("Sync users executed for : " . json_encode($results));
+
         return $this->successResponse([
             'message' => 'User sync completed',
             'results' => $results,
         ]);
+    }
+
+    public function syncUsersManually(User $user, string $firebase_uid): void
+    {
+        $firestore = Firebase::firestore()->database();
+        $collection = $firestore->collection('users');
+
+        try {
+            // Use firebase_uid as document ID if available, otherwise use local id
+            $docId = $firebase_uid;
+            $docRef = $collection->document($docId);
+
+            $docRef->set($this->formatUserForFirestore($user));
+        } catch (\Exception $e) {
+            error("Error syncing user ID {$user->id} to Firestore: " . $e->getMessage());
+        }
+
+        error("Manually synced user ID {$user->id} to Firestore.");
     }
 
     /**

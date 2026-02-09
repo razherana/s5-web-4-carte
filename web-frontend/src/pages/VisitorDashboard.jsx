@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import MapComponent from "../components/MapComponent";
 import StatsCard from "../components/StatsCard";
+import ReportCreateModal from "../components/ReportCreateModal";
 import { reportService } from "../services/reportService";
 import "./Dashboard.css";
 import { useAuth } from "../contexts/AuthContext";
@@ -11,6 +12,8 @@ const VisitorDashboard = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
 
   const { isAuthenticated } = useAuth();
 
@@ -30,6 +33,12 @@ const VisitorDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddReport = (location) => {
+    if (!isAuthenticated) return;
+    setSelectedLocation(location);
+    setIsCreateOpen(true);
   };
 
   if (loading) {
@@ -104,10 +113,26 @@ const VisitorDashboard = () => {
                 <span>Completed</span>
               </div>
             </div>
+            {isAuthenticated && (
+              <div className="map-helper">
+                <span>Astuce :</span> cliquez sur la carte pour déposer un marqueur, puis cliquez sur le marqueur pour signaler.
+              </div>
+            )}
           </div>
-          <MapComponent reports={reports} readOnly={true} />
+          <MapComponent
+            reports={reports}
+            readOnly={true}
+            canAddReport={isAuthenticated}
+            onAddReport={handleAddReport}
+          />
         </section>
       </div>
+      <ReportCreateModal
+        isOpen={isCreateOpen}
+        location={selectedLocation}
+        onClose={() => setIsCreateOpen(false)}
+        onCreated={loadReports}
+      />
     </AppShell>
   );
 };

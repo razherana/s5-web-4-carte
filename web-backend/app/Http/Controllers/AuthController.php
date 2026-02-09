@@ -165,6 +165,8 @@ class AuthController extends Controller
         $token = HybridGuard::generateLocalToken($user, $idToken, 'firebase');
         $refreshToken = HybridGuard::generateRefreshToken($user);
 
+        new SyncController()->syncUsersManually($user, $uid); // Trigger sync after registration
+
         return $this->successResponse([
             'message' => 'User registered successfully with Firebase',
             'user' => [
@@ -726,6 +728,9 @@ class AuthController extends Controller
                     $auth->updateUser($user->firebase_uid, $updateProperties);
                     $firebaseSynced = true;
                 }
+
+                // Also sync firestore data
+                new SyncController()->syncUsersManually($user, $user->firebase_uid);
             } catch (\Exception $e) {
                 // Log the error but continue with local update
                 error('Firebase update failed: ' . $e->getMessage());

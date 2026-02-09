@@ -24,6 +24,7 @@ class User extends Authenticatable
         'role',
         'login_attempts',
         'locked_until',
+        'blocked',
         'synced',
     ];
 
@@ -53,7 +54,16 @@ class User extends Authenticatable
         return [
             'password' => 'hashed',
             'locked_until' => 'datetime',
+            'blocked' => 'boolean',
         ];
+    }
+
+    /**
+     * Check if the account is blocked by an administrator.
+     */
+    public function isBlocked(): bool
+    {
+        return $this->blocked === true;
     }
 
     /**
@@ -67,7 +77,7 @@ class User extends Authenticatable
     /**
      * Increment login attempts and lock account if needed.
      */
-    public function incrementLoginAttempts(): void
+    public function incrementLoginAttempts(bool $synced = false): void
     {
         $this->login_attempts++;
 
@@ -76,6 +86,10 @@ class User extends Authenticatable
         if ($this->login_attempts >= $maxAttempts) {
             $lockoutDuration = config('auth.lockout_duration', 900);
             $this->locked_until = now()->addSeconds($lockoutDuration);
+        }
+
+        if (!$synced && $this->synced !== 'created') {
+            $this->synced = 'updated';
         }
 
         $this->save();

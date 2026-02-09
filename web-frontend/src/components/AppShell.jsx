@@ -17,7 +17,6 @@ import './AppShell.css';
 const AppShell = ({ title, subtitle, actions, children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, isAuthenticated, isManager, logout } = useAuth();
-  console.log('User in AppShell:', user);
 
   let userEmail = user?.email || 'Guest';
   if(userEmail.length > 13) {

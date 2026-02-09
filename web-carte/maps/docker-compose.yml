@@ -1,9 +1,8 @@
-version: '3'
-
 services:
   osm-tileserver:
     image: overv/openstreetmap-tile-server
     container_name: osm-tileserver
+    platform: linux/amd64
     volumes:
       - osm-data:/data/database/
       - ./data/region.osm.pbf:/data/region.osm.pbf

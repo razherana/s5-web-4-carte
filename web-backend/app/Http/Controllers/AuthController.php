@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Kreait\Firebase\Auth\SignIn\FailedToSignIn;
 use Kreait\Laravel\Firebase\Facades\Firebase;
 
 use OpenApi\Attributes as OA;
@@ -261,6 +262,15 @@ class AuthController extends Controller
 
         $user = User::where('email', $validated['email'])->first();
 
+        // Check if account is blocked
+        if ($user && $user->isBlocked()) {
+            return $this->errorResponse(
+                'ACCOUNT_BLOCKED',
+                'Your account has been blocked by an administrator. Please contact support for assistance.',
+                403
+            );
+        }
+
         // Check if account is locked
         if ($user && $user->isLocked()) {
             return $this->errorResponse(
@@ -317,7 +327,20 @@ class AuthController extends Controller
         error('Attempting Firebase authentication for ' . $validated['email']);
 
         // Sign in with email and password
-        $signInResult = $auth->signInWithEmailAndPassword($validated['email'], $validated['password']);
+        try {
+            $signInResult = $auth->signInWithEmailAndPassword($validated['email'], $validated['password']);
+        } catch (FailedToSignIn $failedEx) {
+            // Increment login attempts for user if exists
+            $existingUser = User::where('email', $validated['email'])->first();
+            if ($existingUser) {
+                $existingUser->incrementLoginAttempts(true); // synced = true
+
+                // Update firestore too
+                new SyncController()->syncUsersManually($existingUser, $existingUser->firebase_uid);
+            }
+            // Re-throw to allow fallback to local auth
+            throw $failedEx;
+        }
 
         $uid = $signInResult->firebaseUserId();
         $firebaseUser = $auth->getUser($uid);
@@ -331,6 +354,15 @@ class AuthController extends Controller
             $user = User::where('email', $firebaseUser->email)->first();
 
             if ($user) {
+                // Check if account is blocked
+                if ($user->isBlocked()) {
+                    return $this->errorResponse(
+                        'ACCOUNT_BLOCKED',
+                        'Your account has been blocked by an administrator. Please contact support for assistance.',
+                        403
+                    );
+                }
+
                 // Check if account is locked
                 if ($user->isLocked()) {
                     return $this->errorResponse(
@@ -354,6 +386,15 @@ class AuthController extends Controller
                 ]);
             }
         } else {
+            // Check if account is blocked
+            if ($user->isBlocked()) {
+                return $this->errorResponse(
+                    'ACCOUNT_BLOCKED',
+                    'Your account has been blocked by an administrator. Please contact support for assistance.',
+                    403
+                );
+            }
+
             // Check if account is locked
             if ($user->isLocked()) {
                 return $this->errorResponse(

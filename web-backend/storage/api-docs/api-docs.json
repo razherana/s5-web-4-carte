@@ -454,14 +454,629 @@
                 ]
             }
         },
-        "/api/sync/signalements": {
+        "/api/auth/profile": {
+            "put": {
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update user profile",
+                "description": "Updates the authenticated user's profile information",
+                "operationId": "58198a42d3873f40574f5d77f90c83e2",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "newemail@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "example": "newpassword123"
+                                    },
+                                    "current_password": {
+                                        "description": "Required when changing password",
+                                        "type": "string",
+                                        "example": "currentpassword123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Profile updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/signalements": {
+            "get": {
+                "tags": [
+                    "Signalements"
+                ],
+                "summary": "Get all signalements",
+                "description": "Retrieves all signalements with optional filtering.",
+                "operationId": "91aae7b6c7f20bb9a25d8f826f47eda3",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter by sync status",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "synced",
+                                "created",
+                                "updated",
+                                "deleted"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "user_id",
+                        "in": "query",
+                        "description": "Filter by user ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "entreprise_id",
+                        "in": "query",
+                        "description": "Filter by entreprise ID",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of signalements retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Signalement"
+                                            }
+                                        },
+                                        "error": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Signalements"
+                ],
+                "summary": "Create a new signalement",
+                "description": "Creates a new signalement (report).",
+                "operationId": "17079f87f929d82645985dcd5e83eb55",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "lat",
+                                    "lng",
+                                    "date_signalement",
+                                    "surface",
+                                    "budget",
+                                    "entreprise_id"
+                                ],
+                                "properties": {
+                                    "lat": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": -18.8792
+                                    },
+                                    "lng": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 47.5079
+                                    },
+                                    "date_signalement": {
+                                        "type": "string",
+                                        "example": "2026-01-20"
+                                    },
+                                    "surface": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 150.5
+                                    },
+                                    "budget": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 5000
+                                    },
+                                    "entreprise_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Signalement created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Signalement"
+                                        },
+                                        "error": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/signalements/{id}": {
+            "get": {
+                "tags": [
+                    "Signalements"
+                ],
+                "summary": "Get a specific signalement",
+                "description": "Retrieves a signalement by its ID.",
+                "operationId": "fe9202e7a15fa50e1c28e8af201b2397",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Signalement ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Signalement retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Signalement"
+                                        },
+                                        "error": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Signalement not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Signalements"
+                ],
+                "summary": "Update a signalement",
+                "description": "Updates an existing signalement.",
+                "operationId": "b9ce23d543776121340fda8768f7e6e2",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Signalement ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "lat": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": -18.8792
+                                    },
+                                    "lng": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 47.5079
+                                    },
+                                    "date_signalement": {
+                                        "type": "string",
+                                        "example": "2026-01-20"
+                                    },
+                                    "surface": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 150.5
+                                    },
+                                    "budget": {
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 5000
+                                    },
+                                    "entreprise_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Signalement updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/Signalement"
+                                        },
+                                        "error": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Signalement not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Signalements"
+                ],
+                "summary": "Delete a signalement",
+                "description": "Deletes a signalement (marks it for deletion in sync).",
+                "operationId": "dc4da52bff947317f192a11144d9c1e1",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Signalement ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Signalement deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Signalement deleted successfully"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "error": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Signalement not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/signalements/sync": {
+            "post": {
+                "tags": [
+                    "Signalements"
+                ],
+                "summary": "Sync signalements with Firebase",
+                "description": "Synchronizes all pending signalements with Firebase Firestore.",
+                "operationId": "bad800d66481d28fd04f0755c7b16a21",
+                "responses": {
+                    "200": {
+                        "description": "Sync completed successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "example": "success"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Sync completed"
+                                                },
+                                                "results": {
+                                                    "properties": {
+                                                        "created": {
+                                                            "type": "integer",
+                                                            "example": 5
+                                                        },
+                                                        "updated": {
+                                                            "type": "integer",
+                                                            "example": 3
+                                                        },
+                                                        "deleted": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "errors": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "object"
+                                                            }
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "error": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Sync failed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/sync/users": {
             "post": {
                 "tags": [
                     "Sync"
                 ],
-                "summary": "Sync signalements to Firestore (Manager only)",
-                "description": "Synchronizes signalements from PostgreSQL to Firestore. Only managers can perform this action.",
-                "operationId": "15c572fb2578e487c564d53f9979b92b",
+                "summary": "Sync users to Firestore (Manager only)",
+                "description": "Synchronizes users from PostgreSQL to Firestore. Only managers can perform this action.",
+                "operationId": "de04ab3c432d51f72555199f668d0bc6",
                 "responses": {
                     "200": {
                         "description": "Sync completed successfully",
@@ -543,6 +1158,136 @@
                     }
                 },
                 "type": "object"
+            },
+            "User": {
+                "type": "object",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "firebase_uid": {
+                                "type": "string",
+                                "example": "abc123-def456",
+                                "nullable": true
+                            },
+                            "email": {
+                                "type": "string",
+                                "format": "email",
+                                "example": "user@example.com"
+                            },
+                            "role": {
+                                "type": "string",
+                                "enum": [
+                                    "user",
+                                    "manager"
+                                ],
+                                "example": "user"
+                            },
+                            "login_attempts": {
+                                "type": "integer",
+                                "example": 0
+                            },
+                            "locked_until": {
+                                "type": "string",
+                                "format": "date-time",
+                                "nullable": true
+                            },
+                            "synced": {
+                                "type": "string",
+                                "enum": [
+                                    "synced",
+                                    "created",
+                                    "updated",
+                                    "deleted"
+                                ],
+                                "example": "synced",
+                                "nullable": true
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
+            },
+            "Signalement": {
+                "type": "object",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "user_id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "firebase_uid": {
+                                "type": "string",
+                                "example": "abc123-def456"
+                            },
+                            "lat": {
+                                "type": "number",
+                                "format": "float",
+                                "example": -18.8792
+                            },
+                            "lng": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 47.5079
+                            },
+                            "date_signalement": {
+                                "type": "string",
+                                "example": "2026-01-20"
+                            },
+                            "surface": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 150.5
+                            },
+                            "budget": {
+                                "type": "number",
+                                "format": "float",
+                                "example": 5000
+                            },
+                            "entreprise_id": {
+                                "type": "integer",
+                                "example": 1
+                            },
+                            "synced": {
+                                "type": "string",
+                                "enum": [
+                                    "synced",
+                                    "created",
+                                    "updated",
+                                    "deleted"
+                                ],
+                                "example": "synced"
+                            },
+                            "user": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/User"
+                                    }
+                                ],
+                                "nullable": true
+                            },
+                            "entreprise": {
+                                "type": "object",
+                                "nullable": true
+                            }
+                        },
+                        "type": "object"
+                    }
+                ]
             }
         },
         "securitySchemes": {
@@ -566,6 +1311,10 @@
         {
             "name": "Sync",
             "description": "Data synchronization endpoints"
+        },
+        {
+            "name": "Signalements",
+            "description": "Report management endpoints"
         }
     ]
 }

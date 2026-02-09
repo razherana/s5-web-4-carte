@@ -10,7 +10,7 @@ const CreateUserPage = () => {
     email: '',
     password: '',
     password_confirmation: '',
-    role: 'visitor',
+    role: 'user',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -125,7 +125,7 @@ const CreateUserPage = () => {
                 required
                 disabled={loading}
               >
-                <option value="visitor">Visitor</option>
+                <option value="user">User</option>
                 <option value="manager">Manager</option>
               </select>
             </div>

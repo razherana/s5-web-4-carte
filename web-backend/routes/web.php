@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\SignalementController;
 use App\Http\Controllers\SyncController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -23,9 +25,31 @@ Route::middleware('auth.firebase')->prefix('api/auth')->group(function () {
     Route::put('/profile', [AuthController::class, 'updateProfile']);
 });
 
-// Manager-only routes (requires Firebase auth + manager role)
-Route::middleware(['auth.firebase', 'manager'])->group(function () {
-    Route::post('/unlock-account', [AuthController::class, 'unlockAccount']);
-    Route::post('/api/sync/signalements', [SyncController::class, 'syncSignalements']);
-    Route::post('/api/sync/users', [SyncController::class, 'syncUsers']);
+// Signalements routes (protected)
+Route::middleware('auth.firebase')->prefix('api')->group(function () {
+    Route::get('/signalements', [SignalementController::class, 'index']);
+    Route::get('/signalements/{id}', [SignalementController::class, 'show']);
+    Route::post('/signalements', [SignalementController::class, 'store']);
+    Route::put('/signalements/{id}', [SignalementController::class, 'update']);
+    Route::delete('/signalements/{id}', [SignalementController::class, 'destroy']);
 });
+
+// Manager-only routes (requires Firebase auth + manager role)
+Route::middleware(['auth.firebase', 'manager'])->prefix('api')->group(function () {
+    // User management
+    Route::get('/users', [UserController::class, 'index']);
+    Route::get('/users/{id}', [UserController::class, 'show']);
+    Route::post('/users', [UserController::class, 'store']);
+    Route::put('/users/{id}', [UserController::class, 'update']);
+    Route::post('/users/{id}/unblock', [UserController::class, 'unblock']);
+    Route::post('/users/{id}/block', [UserController::class, 'block']);
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
+    // Sync operations
+    Route::post('/signalements/sync', [SignalementController::class, 'sync']);
+    Route::post('/sync/users', [SyncController::class, 'syncUsers']);
+
+    // Legacy route
+    Route::post('/unlock-account', [AuthController::class, 'unlockAccount']);
+});
+

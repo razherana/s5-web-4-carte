@@ -49,6 +49,7 @@ export default {
     const mapInitialized = ref(false);
     const mapDestroyed = ref(false);
     const isUpdatingMarkers = ref(false);
+    const updateToken = ref(0);
 
     // Pour la galerie photo
     const photoGalleryOpen = ref(false);
@@ -181,13 +182,13 @@ export default {
     };
 
     const updateMarkers = async () => {
-      // Vérifier que la carte est prête
       if (!map.value || !mapInitialized.value || mapDestroyed.value || isUpdatingMarkers.value) {
         console.log("Carte non prête pour la mise à jour des marqueurs");
         return;
       }
 
       isUpdatingMarkers.value = true;
+      const token = ++updateToken.value;
       console.log("🔄 Mise à jour des marqueurs...");
 
       try {
@@ -213,14 +214,17 @@ export default {
 
           if (lat && lng) {
             try {
-              // Vérifier à nouveau que la carte existe
-              if (!map.value || mapDestroyed.value) {
-                console.log("Carte détruite pendant la mise à jour des marqueurs");
+              if (!map.value || mapDestroyed.value || token !== updateToken.value) {
+                console.log("Carte détruite ou mise à jour annulée");
                 break;
               }
 
-              // Charger les images pour ce signalement
               const reportImages = await loadReportImages(report.id);
+
+              if (!map.value || mapDestroyed.value || token !== updateToken.value) {
+                console.log("Carte détruite ou mise à jour annulée");
+                break;
+              }
 
               const markerColor = getMarkerColor(report.status);
               const icon = L.icon({
@@ -233,14 +237,17 @@ export default {
                 shadowSize: [41, 41],
               });
 
-              // Créer le contenu du popup avec les images
               const popupContent = createPopupContent(report, reportImages);
 
-              // Créer une fonction globale pour ouvrir la galerie
               if (reportImages.length > 0) {
                 window[`openPhotoGallery_${report.id}`] = () => {
                   openPhotoGallery(reportImages);
                 };
+              }
+
+              if (!map.value) {
+                console.warn("Carte indisponible au moment d'ajouter le marqueur");
+                continue;
               }
 
               const marker = L.marker([lat, lng], { icon })
@@ -421,6 +428,7 @@ export default {
 
     const cleanupMap = () => {
       console.log("🧹 Nettoyage de la carte...");
+      updateToken.value++;
       if (map.value) {
         try {
           map.value.off("click");

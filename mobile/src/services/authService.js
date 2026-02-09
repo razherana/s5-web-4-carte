@@ -104,10 +104,17 @@ class AuthService {
         token: response.data.token
       };
     } catch (error) {
-      console.error('Erreur API login:', error);
+      const isNet = this.isNetworkError(error);
+      if (isNet) {
+        console.warn("API indisponible (login):", error.message);
+      } else {
+        console.error("Erreur API login:", error);
+      }
       return {
         success: false,
-        error: error.response?.data?.message || 'Erreur de connexion à l\'API'
+        error: isNet
+          ? "API indisponible. Lancez le serveur API ou vérifiez l'URL."
+          : error.response?.data?.message || "Erreur de connexion à l'API"
       };
     }
   }
@@ -131,8 +138,11 @@ class AuthService {
     }
     
     console.log('⚠️ Firebase login échoué, tentative avec API...');
-    
-    // Si Firebase échoue, essayer l'API REST
+
+    if (!this.isApiEnabled()) {
+      return firebaseResult;
+    }
+
     const apiResult = await this.loginWithAPI(email, password);
     
     if (apiResult.success) {
@@ -213,10 +223,17 @@ class AuthService {
         error: 'Réponse invalide du serveur'
       };
     } catch (error) {
-      console.error('Erreur API register:', error);
+      const isNet = this.isNetworkError(error);
+      if (isNet) {
+        console.warn("API indisponible (register):", error.message);
+      } else {
+        console.error("Erreur API register:", error);
+      }
       return {
         success: false,
-        error: error.response?.data?.message || 'Erreur lors de l\'inscription'
+        error: isNet
+          ? "API indisponible. Lancez le serveur API ou vérifiez l'URL."
+          : error.response?.data?.message || "Erreur lors de l'inscription"
       };
     }
   }
@@ -244,22 +261,26 @@ class AuthService {
     if (firebaseResult.success) {
       console.log('✅ Inscription réussie avec Firebase');
       
-      // Essayer de synchroniser avec l'API (optionnel, ne bloque pas si ça échoue)
-      try {
-        await this.registerWithAPI(email, password, userData);
-        console.log('✅ Utilisateur synchronisé avec l\'API');
-      } catch (error) {
-        console.warn('⚠️ Sync API échouée (non bloquant):', error);
+      if (this.isApiEnabled()) {
+        try {
+          await this.registerWithAPI(email, password, userData);
+          console.log('✅ Utilisateur synchronisé avec l\'API');
+        } catch (error) {
+          console.warn('⚠️ Sync API échouée (non bloquant):', error);
+        }
       }
-      
+
       return firebaseResult;
     }
     
     console.log('⚠️ Firebase register échoué, tentative avec API...');
-    
-    // Si Firebase échoue, essayer l'API
+
+    if (!this.isApiEnabled()) {
+      return firebaseResult;
+    }
+
     const apiResult = await this.registerWithAPI(email, password, userData);
-    
+
     if (apiResult.success) {
       console.log('✅ Inscription réussie avec API');
       return apiResult;
@@ -387,6 +408,31 @@ class AuthService {
       };
     }
     return {};
+  }
+
+  isApiEnabled() {
+    try {
+      const apiHost = new URL(API_URL).hostname;
+      const isLocalApi = ["localhost", "127.0.0.1", "10.0.2.2"].includes(apiHost);
+      const appHost = window?.location?.hostname;
+
+      if (isLocalApi && appHost && !["localhost", "127.0.0.1"].includes(appHost)) {
+        return false;
+      }
+      return true;
+    } catch {
+      return true;
+    }
+  }
+
+  isNetworkError(error) {
+    return (
+      !error.response &&
+      (error.code === "ERR_NETWORK" ||
+        error.code === "ECONNABORTED" ||
+        String(error.message || "").includes("Network Error") ||
+        String(error.message || "").includes("ERR_CONNECTION_REFUSED"))
+    );
   }
 }
 

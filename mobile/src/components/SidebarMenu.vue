@@ -12,7 +12,7 @@
           </div>
         </div>
 
-        <div class="profile-panel" :class="{ guest: !isLoggedIn }">
+        <!-- <div class="profile-panel" :class="{ guest: !isLoggedIn }">
           <div class="avatar">
             <span>{{ userInitials }}</span>
           </div>
@@ -20,7 +20,7 @@
             <h2 class="profile-name">{{ currentUser?.displayName || 'Bienvenue' }}</h2>
             <p class="profile-email">{{ currentUser?.email || 'Connectez-vous pour personnaliser votre expérience.' }}</p>
           </div>
-        </div>
+        </div> -->
       </div>
 
       <div class="menu-section">

@@ -1,5 +1,9 @@
 <template>
-  <ion-modal class="report-modal-modern" :is-open="isOpen" @ionModalDidDismiss="close">
+  <ion-modal
+    class="report-modal-modern"
+    :is-open="isOpen"
+    @ionModalDidDismiss="close"
+  >
     <ion-header class="modal-header-modern">
       <ion-toolbar>
         <ion-buttons slot="start">
@@ -15,7 +19,7 @@
         </ion-title>
       </ion-toolbar>
     </ion-header>
-    
+
     <ion-content class="modal-content-modern">
       <form @submit.prevent="submitReport" class="report-form-modern">
         <!-- Hero Section -->
@@ -126,40 +130,82 @@
           </div>
         </div>
 
-        <!-- Photo Section -->
+        <!-- Photo Section - Multi-photos -->
         <div class="form-section photo-section">
           <div class="section-header">
             <ion-icon :icon="cameraOutline"></ion-icon>
-            <h3>Photo</h3>
-            <span class="optional-badge">Optionnel</span>
+            <h3>Photos</h3>
+            <span class="optional-badge"
+              >{{ form.photos.length }}/{{ maxPhotos }}</span
+            >
           </div>
-          
-          <div v-if="!form.photoUrl" class="photo-upload-zone" @click="takePhoto">
+
+          <!-- Upload zone -->
+          <div
+            v-if="form.photos.length < maxPhotos"
+            class="photo-upload-zone"
+            @click="addPhotos"
+          >
             <div class="upload-icon">
-              <ion-icon :icon="cloudUploadOutline"></ion-icon>
+              <ion-icon :icon="imagesOutline"></ion-icon>
             </div>
-            <p class="upload-text">Ajouter une photo</p>
-            <p class="upload-hint">Cliquez pour prendre ou sélectionner une photo</p>
+            <p class="upload-text">Ajouter des photos</p>
+            <p class="upload-hint">
+              Jusqu'à {{ maxPhotos }} photos • Cliquez pour sélectionner
+            </p>
           </div>
-          
-          <div v-else class="photo-preview-modern">
-            <img :src="form.photoUrl" alt="Photo du signalement" />
-            <button type="button" class="remove-photo-btn" @click="removePhoto">
-              <ion-icon :icon="trashOutline"></ion-icon>
-              Supprimer
+
+          <!-- Photos preview grid -->
+          <div v-if="form.photos.length > 0" class="photos-grid">
+            <div
+              v-for="(photo, index) in form.photos"
+              :key="index"
+              class="photo-item"
+            >
+              <img :src="photo.preview" :alt="`Photo ${index + 1}`" />
+              <button
+                type="button"
+                class="remove-photo-btn-small"
+                @click="removePhoto(index)"
+              >
+                <ion-icon :icon="closeCircleOutline"></ion-icon>
+              </button>
+              <div class="photo-number">{{ index + 1 }}</div>
+            </div>
+          </div>
+
+          <!-- Action buttons -->
+          <div
+            v-if="form.photos.length > 0 && form.photos.length < maxPhotos"
+            class="photo-actions"
+          >
+            <button type="button" class="add-more-btn" @click="addPhotos">
+              <ion-icon :icon="addOutline"></ion-icon>
+              Ajouter plus
             </button>
           </div>
         </div>
 
         <!-- Submit Section -->
         <div class="form-actions">
-          <button type="button" class="cancel-btn-modern" @click="close" :disabled="submitting">
+          <button
+            type="button"
+            class="cancel-btn-modern"
+            @click="close"
+            :disabled="submitting"
+          >
             Annuler
           </button>
-          <button type="submit" class="submit-btn-modern" :disabled="submitting || !isFormValid">
+          <button
+            type="submit"
+            class="submit-btn-modern"
+            :disabled="submitting || !isFormValid"
+          >
             <ion-spinner v-if="submitting" name="crescent"></ion-spinner>
             <ion-icon v-else :icon="checkmarkCircleOutline"></ion-icon>
-            <span>{{ submitting ? "Envoi..." : "Créer le signalement" }}</span>
+            <span>{{
+              submitting ? uploadProgress : "Créer le signalement"
+            }}</span>
           </button>
         </div>
       </form>
@@ -168,6 +214,8 @@
 </template>
 
 <script>
+import imageService from "@/services/imageService";
+
 import {
   IonModal,
   IonHeader,
@@ -176,21 +224,18 @@ import {
   IonContent,
   IonInput,
   IonTextarea,
-  IonSelect,
-  IonSelectOption,
   IonButton,
   IonButtons,
   IonIcon,
   IonSpinner,
   alertController,
   toastController,
+  actionSheetController,
 } from "@ionic/vue";
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 import {
-  camera,
   cameraOutline,
   closeOutline,
-  mapOutline,
   addCircleOutline,
   locationOutline,
   navigateOutline,
@@ -200,17 +245,20 @@ import {
   resizeOutline,
   cashOutline,
   businessOutline,
-  cloudUploadOutline,
-  trashOutline,
+  imagesOutline,
+  closeCircleOutline,
+  addOutline,
   checkmarkCircleOutline,
   warningOutline,
   hammerOutline,
   trendingDownOutline,
   constructOutline,
   ellipsisHorizontalOutline,
+  folderOutline,
 } from "ionicons/icons";
 import reportService from "@/services/reportService";
 import authService from "@/services/authService";
+import capacitorService from "@/services/capacitorService";
 
 export default {
   name: "ReportModal",
@@ -222,8 +270,6 @@ export default {
     IonContent,
     IonInput,
     IonTextarea,
-    IonSelect,
-    IonSelectOption,
     IonButton,
     IonButtons,
     IonIcon,
@@ -241,24 +287,30 @@ export default {
   },
   emits: ["close", "report-created"],
   setup(props, { emit }) {
+    const maxPhotos = 5;
     const form = ref({
       description: "",
       problemType: "nid_poule",
       surface: null,
       budget: null,
       company: "",
-      photoUrl: "",
+      photos: [], // Array of { file, preview, name }
     });
 
     const problemTypes = [
       { value: "nid_poule", label: "Nid de poule", icon: warningOutline },
       { value: "fissure", label: "Fissure", icon: hammerOutline },
-      { value: "affaissement", label: "Affaissement", icon: trendingDownOutline },
+      {
+        value: "affaissement",
+        label: "Affaissement",
+        icon: trendingDownOutline,
+      },
       { value: "degradation", label: "Dégradation", icon: constructOutline },
       { value: "autre", label: "Autre", icon: ellipsisHorizontalOutline },
     ];
 
     const submitting = ref(false);
+    const uploadProgress = ref("Envoi...");
 
     const coordsText = computed(() => {
       return `${props.location.lat.toFixed(6)}, ${props.location.lng.toFixed(
@@ -284,125 +336,321 @@ export default {
         surface: null,
         budget: null,
         company: "",
-        photoUrl: "",
+        photos: [],
       };
       submitting.value = false;
+      uploadProgress.value = "Envoi...";
+    };
+
+    // Fonction utilitaire pour convertir dataURL en Blob
+    const dataURLtoBlob = (dataURL) => {
+      const arr = dataURL.split(",");
+      const mime = arr[0].match(/:(.*?);/)[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+
+      return new Blob([u8arr], { type: mime });
+    };
+
+    // Fonction pour compresser les images
+    const compressImage = async (blob, maxWidth = 1024) => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(blob);
+
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (compressedBlob) => resolve(compressedBlob),
+            "image/jpeg",
+            0.7
+          );
+        };
+
+        img.onerror = reject;
+        img.src = url;
+      });
+    };
+
+    // Fonction pour ajouter une photo au formulaire
+    const addPhotoToForm = async (fileOrBlob) => {
+      try {
+        const blob =
+          fileOrBlob instanceof Blob
+            ? fileOrBlob
+            : await fetch(fileOrBlob).then((r) => r.blob());
+
+        // Compresser l'image
+        const compressedBlob = await compressImage(blob);
+
+        // Créer une preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          form.value.photos.push({
+            file: compressedBlob,
+            preview: e.target.result,
+            name: `photo_${Date.now()}_${form.value.photos.length}`,
+          });
+
+          if (form.value.photos.length >= maxPhotos) {
+            showToast(`Maximum de ${maxPhotos} photos atteint`, "warning");
+          } else {
+            showToast(
+              `Photo ajoutée (${form.value.photos.length}/${maxPhotos})`
+            );
+          }
+        };
+        reader.readAsDataURL(compressedBlob);
+      } catch (error) {
+        console.error("Erreur ajout photo:", error);
+        showToast("Erreur lors de l'ajout de la photo", "danger");
+      }
+    };
+
+    const addPhotos = async () => {
+      try {
+        const actionSheet = await actionSheetController.create({
+          header: "Ajouter des photos",
+          buttons: [
+            {
+              text: "Prendre une photo",
+              icon: cameraOutline,
+              handler: () => {
+                takePhoto();
+              },
+            },
+            {
+              text: "Choisir depuis la galerie",
+              icon: imagesOutline,
+              handler: () => {
+                pickPhotos();
+              },
+            },
+            {
+              text: "Choisir des fichiers",
+              icon: folderOutline,
+              handler: () => {
+                pickFiles();
+              },
+            },
+            {
+              text: "Annuler",
+              icon: closeOutline,
+              role: "cancel",
+            },
+          ],
+        });
+
+        await actionSheet.present();
+      } catch (error) {
+        console.error("Erreur action sheet:", error);
+        // Fallback simple
+        pickPhotos();
+      }
     };
 
     const takePhoto = async () => {
-      // Pour l'instant, simuler la prise de photo
-      // En production, utiliser @capacitor/camera
-      const alert = await alertController.create({
-        header: "Photo",
-        message:
-          "Simulation de prise de photo. En production, utilisez @capacitor/camera.",
-        buttons: ["OK"],
-      });
-      await alert.present();
+      try {
+        const result = await capacitorService.takePhoto();
 
-      // Simuler une URL de photo
-      form.value.photoUrl =
-        "https://via.placeholder.com/300x200/007bff/ffffff?text=Photo+du+signalement";
+        if (result.success && result.dataUrl) {
+          const blob = dataURLtoBlob(result.dataUrl);
+          await addPhotoToForm(blob);
+        }
+      } catch (error) {
+        console.error("Erreur prise de photo:", error);
+        showToast("Erreur lors de la prise de photo", "danger");
+      }
     };
 
-    const removePhoto = () => {
-      form.value.photoUrl = "";
+    const pickFiles = async () => {
+      try {
+        const remainingSlots = maxPhotos - form.value.photos.length;
+
+        // Créer un input file
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+        input.multiple = true;
+
+        input.onchange = async (e) => {
+          const files = Array.from(e.target.files || []).slice(
+            0,
+            remainingSlots
+          );
+
+          for (const file of files) {
+            await addPhotoToForm(file);
+          }
+
+          if (files.length > 0) {
+            showToast(
+              `${files.length} photo(s) ajoutée(s) à partir de fichiers`
+            );
+          }
+        };
+
+        input.click();
+      } catch (error) {
+        console.error("Erreur sélection fichiers:", error);
+        showToast("Erreur lors de la sélection des fichiers", "danger");
+      }
+    };
+
+    const pickPhotos = async () => {
+      try {
+        const remainingSlots = maxPhotos - form.value.photos.length;
+        const result = await capacitorService.pickMultiplePhotos(
+          remainingSlots
+        );
+
+        if (result.success && result.photos.length > 0) {
+          for (const photo of result.photos) {
+            const blob = photo.file || dataURLtoBlob(photo.dataUrl);
+            await addPhotoToForm(blob);
+          }
+
+          showToast(`${result.photos.length} photo(s) ajoutée(s)`);
+        }
+      } catch (error) {
+        console.error("Erreur sélection photos:", error);
+        showToast("Erreur lors de la sélection des photos", "danger");
+      }
+    };
+
+    const removePhoto = (index) => {
+      form.value.photos.splice(index, 1);
+      showToast("Photo supprimée");
     };
 
     const submitReport = async () => {
-      // Vérifier que l'utilisateur est connecté
-      const currentUser = authService.getCurrentUser();
-      if (!currentUser) {
-        const alert = await alertController.create({
-          header: "Erreur",
-          message: "Vous devez être connecté pour créer un signalement",
-          buttons: ["OK"],
-        });
-        await alert.present();
+      if (!isFormValid.value) {
+        showToast("Veuillez remplir les champs obligatoires", "warning");
         return;
       }
 
-      // Vérifier la validation du formulaire
-      if (!isFormValid.value) {
-        const alert = await alertController.create({
-          header: "Erreur",
-          message: "Veuillez remplir tous les champs obligatoires",
-          buttons: ["OK"],
-        });
-        await alert.present();
+      const currentUser = authService.getCurrentUser();
+      if (!currentUser) {
+        showToast(
+          "Vous devez être connecté pour créer un signalement",
+          "danger"
+        );
         return;
       }
 
       submitting.value = true;
+      uploadProgress.value = "Préparation...";
 
       try {
+        // 1. Créer le signalement dans Firestore
+        uploadProgress.value = "Création du signalement...";
+
         const reportData = {
-          description: form.value.description.trim(),
-          problem_type: form.value.problemType, // Correspond au schéma
+          description: form.value.description,
+          problem_type: form.value.problemType,
           lat: props.location.lat,
           lng: props.location.lng,
-          surface: form.value.surface || null,
-          budget: form.value.budget || null,
-          entreprise_id: form.value.company.trim() || null,
+          surface: form.value.surface,
+          budget: form.value.budget,
+          enterprise_id: form.value.company,
           user_id: currentUser.uid || currentUser.id,
-          user_email: currentUser.email || "Non spécifié",
-          // Supprimer l'id car Firestore le génère automatiquement
+          user_email: currentUser.email,
           status: "nouveau",
+          reporting_date: new Date(),
         };
-
-        console.log("Envoi du signalement au format reporting:", reportData);
 
         const result = await reportService.createReport(reportData);
 
-        if (result.success) {
-          const toast = await toastController.create({
-            message: "Signalement créé avec succès!",
-            duration: 2000,
-            color: "success",
-            position: "top",
-          });
-          await toast.present();
-
-          resetForm();
-          emit("report-created", result.id);
-          emit("close");
-        } else {
-          throw new Error(result.error || "Erreur inconnue");
+        if (!result.success) {
+          throw new Error(result.error || "Erreur lors de la création");
         }
+
+        const reportId = result.id;
+
+        // 2. Sauvegarder les images si présentes
+        if (form.value.photos.length > 0) {
+          uploadProgress.value = `Upload des images (0/${form.value.photos.length})...`;
+
+          const imageFiles = form.value.photos.map((photo) => photo.file);
+          const imageResult = await imageService.saveMultipleImages(
+            imageFiles,
+            reportId,
+            currentUser.uid || currentUser.id
+          );
+
+          if (!imageResult.success) {
+            console.warn(
+              "⚠️ Erreur lors de la sauvegarde des images:",
+              imageResult.error
+            );
+            showToast(
+              "Signalement créé mais erreur avec certaines images",
+              "warning"
+            );
+          } else {
+            console.log(`${imageResult.successful} image(s) sauvegardée(s)`);
+          }
+        }
+
+        uploadProgress.value = "Finalisation...";
+
+        showToast("Signalement créé avec succès", "success");
+        emit("report-created");
+        close();
       } catch (error) {
-        console.error("Erreur lors de la création du signalement:", error);
-        const alert = await alertController.create({
-          header: "Erreur",
-          message:
-            error.message ||
-            "Impossible de créer le signalement. Veuillez réessayer.",
-          buttons: ["OK"],
-        });
-        await alert.present();
+        console.error("Erreur création signalement:", error);
+        showToast(error.message || "Erreur lors de la création", "danger");
       } finally {
         submitting.value = false;
+        uploadProgress.value = "Envoi...";
       }
     };
 
-    // Réinitialiser le formulaire quand le modal se ferme
-    watch(
-      () => props.isOpen,
-      (newVal) => {
-        if (!newVal) {
-          resetForm();
-        }
-      }
-    );
+    const showToast = async (message, color = "primary") => {
+      const toast = await toastController.create({
+        message,
+        duration: 2000,
+        color,
+        position: "bottom",
+      });
+      await toast.present();
+    };
 
     return {
       form,
+      problemTypes,
       submitting,
+      uploadProgress,
       coordsText,
       isFormValid,
-      problemTypes,
-      camera,
+      maxPhotos,
+      close,
+      addPhotos,
+      removePhoto,
+      submitReport,
+      // Icons
       cameraOutline,
-      mapOutline,
       closeOutline,
       addCircleOutline,
       locationOutline,
@@ -413,272 +661,250 @@ export default {
       resizeOutline,
       cashOutline,
       businessOutline,
-      cloudUploadOutline,
-      trashOutline,
+      imagesOutline,
+      closeCircleOutline,
+      addOutline,
       checkmarkCircleOutline,
       warningOutline,
       hammerOutline,
       trendingDownOutline,
       constructOutline,
       ellipsisHorizontalOutline,
-      close,
-      takePhoto,
-      removePhoto,
-      submitReport,
+      folderOutline,
     };
   },
 };
 </script>
 
 <style scoped>
-/* Modal Container */
-:deep(.report-modal-modern .modal-wrapper) {
-  border-radius: 100px 100px 0 0;
-  overflow: hidden;
-  height: 90vh;
-  max-height: 90vh;
+/* Styles de base du modal */
+.report-modal-modern {
+  --width: 100%;
+  --max-width: 600px;
+  --height: 90%;
+  --border-radius: 24px 24px 0 0;
+  --box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.15);
 }
 
-:deep(.report-modal-modern .ion-page) {
-  border-radius: 100px 100px 0 0;
-  overflow: hidden;
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.2);
-}
-
-/* Header */
 .modal-header-modern {
-  position: relative;
-  z-index: 10;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
 }
 
-:deep(.modal-header-modern ion-toolbar) {
-  --background: rgba(255, 255, 255, 0.98);
-  --color: #0f172a;
+.modal-header-modern ion-toolbar {
+  --background: transparent;
   --border-width: 0;
-  --padding-top: 8px;
-  --padding-bottom: 8px;
-  backdrop-filter: blur(24px) saturate(140%);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  --padding-top: 12px;
+  --padding-bottom: 12px;
 }
 
 .back-btn-modern {
-  --color: #64748b;
-  --padding-start: 12px;
-  --padding-end: 12px;
+  --color: white;
+  --background: rgba(255, 255, 255, 0.15);
+  --border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  margin-left: 8px;
 }
 
-.back-btn-modern ion-icon {
-  font-size: 26px;
+.back-btn-modern:hover {
+  --background: rgba(255, 255, 255, 0.25);
 }
 
 .modal-title-modern {
-  font-weight: 800;
-  font-size: 1.1rem;
-  padding: 0;
+  color: white;
+  font-weight: 700;
+  font-size: 1.2rem;
+  text-align: center;
 }
 
 .title-wrapper {
   display: flex;
   align-items: center;
-  gap: 10px;
-  color: #0f172a;
+  justify-content: center;
+  gap: 12px;
 }
 
 .title-icon {
   font-size: 24px;
-  color: #2563eb;
+  color: white;
 }
 
-/* Content */
+/* Contenu du modal */
 .modal-content-modern {
-  --background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
+  --background: #f8fafc;
   --padding-top: 0;
-  --padding-bottom: 0;
+  --padding-bottom: 32px;
 }
 
-/* Form */
 .report-form-modern {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  max-width: 640px;
-  margin: 0 auto;
+  padding: 0 20px 32px;
 }
 
 /* Hero Section */
 .modal-hero-modern {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.95), rgba(29, 78, 216, 0.95));
+  background: white;
   border-radius: 20px;
   padding: 24px;
-  color: white;
+  margin: -16px 0 24px;
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.1);
+  text-align: center;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(37, 99, 235, 0.25);
 }
 
 .modal-hero-modern::before {
-  content: '';
+  content: "";
   position: absolute;
-  top: -50%;
-  right: -20%;
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
-  border-radius: 50%;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #2563eb, #3b82f6, #60a5fa);
 }
 
 .hero-icon-wrapper {
-  width: 56px;
-  height: 56px;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  margin: 0 auto 16px;
 }
 
 .hero-icon-wrapper ion-icon {
   font-size: 32px;
-  color: white;
+  color: #2563eb;
 }
 
 .hero-content h2 {
-  margin: 0 0 8px 0;
+  margin: 0 0 8px;
+  color: #1e293b;
   font-size: 1.5rem;
-  font-weight: 800;
-  color: white;
+  font-weight: 700;
 }
 
 .hero-content p {
   margin: 0;
+  color: #64748b;
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.5;
 }
 
 .location-badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  padding: 10px 16px;
-  border-radius: 12px;
+  background: #f1f5f9;
+  padding: 8px 16px;
+  border-radius: 20px;
   margin-top: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-size: 0.875rem;
+  color: #475569;
 }
 
 .location-badge ion-icon {
-  font-size: 18px;
-  color: white;
-}
-
-.location-badge span {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: white;
+  font-size: 16px;
+  color: #2563eb;
 }
 
 /* Form Sections */
 .form-section {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px) saturate(130%);
+  background: white;
   border-radius: 20px;
   padding: 20px;
-  border: 1px solid rgba(148, 163, 184, 0.15);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 }
 
 .section-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 20px;
   padding-bottom: 12px;
-  border-bottom: 2px solid rgba(148, 163, 184, 0.1);
+  border-bottom: 2px solid #f1f5f9;
 }
 
 .section-header ion-icon {
-  font-size: 22px;
+  font-size: 24px;
   color: #2563eb;
 }
 
 .section-header h3 {
   margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #0f172a;
+  color: #1e293b;
+  font-size: 1.1rem;
+  font-weight: 600;
   flex: 1;
 }
 
 .optional-badge {
-  background: rgba(100, 116, 139, 0.12);
+  background: #f1f5f9;
   color: #64748b;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
-/* Input Wrapper */
+/* Inputs */
 .input-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.input-wrapper:last-child {
+  margin-bottom: 0;
 }
 
 .modern-label {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.85rem;
-  font-weight: 700;
+  margin-bottom: 8px;
   color: #475569;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-weight: 600;
+  font-size: 0.95rem;
 }
 
 .modern-label ion-icon {
-  font-size: 16px;
-  color: #64748b;
+  font-size: 20px;
+  color: #2563eb;
 }
 
-/* Modern Inputs */
-:deep(.modern-textarea),
-:deep(.modern-input) {
-  --background: rgba(255, 255, 255, 0.9);
-  --color: #0f172a;
-  --placeholder-color: #94a3b8;
-  --placeholder-opacity: 1;
+.modern-input,
+.modern-textarea {
+  --background: #f8fafc;
+  --border-radius: 12px;
   --padding-start: 16px;
   --padding-end: 16px;
   --padding-top: 14px;
   --padding-bottom: 14px;
-  border-radius: 14px;
-  border: 2px solid rgba(148, 163, 184, 0.2);
-  font-size: 0.95rem;
-  font-weight: 500;
+  --color: #1e293b;
+  --placeholder-color: #94a3b8;
+  --border: 2px solid #e2e8f0;
+  font-size: 1rem;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
-:deep(.modern-textarea:focus-within),
-:deep(.modern-input:focus-within) {
-  border-color: #2563eb;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.15), 0 0 0 4px rgba(37, 99, 235, 0.08);
+.modern-input:focus,
+.modern-textarea:focus {
+  --border-color: #2563eb;
+  --background: white;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.modern-textarea {
+  --height: auto;
+  min-height: 120px;
 }
 
 .input-hint {
-  font-size: 0.8rem;
-  color: #64748b;
-  font-weight: 500;
-  padding-left: 4px;
+  display: block;
+  margin-top: 8px;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-style: italic;
 }
 
 /* Problem Type Grid */
@@ -689,101 +915,85 @@ export default {
 }
 
 .problem-type-btn {
-  background: rgba(255, 255, 255, 0.7);
-  border: 2px solid rgba(148, 163, 184, 0.2);
-  border-radius: 14px;
-  padding: 16px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
 }
 
-.problem-type-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(37, 99, 235, 0.02));
-  opacity: 0;
-  transition: opacity 0.3s ease;
+.problem-type-btn:hover {
+  background: #f1f5f9;
+  transform: translateY(-2px);
 }
 
-.problem-type-btn:hover::before {
-  opacity: 1;
+.problem-type-btn.active {
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border-color: #2563eb;
+  color: #2563eb;
 }
 
 .problem-type-btn ion-icon {
   font-size: 28px;
-  color: #64748b;
-  transition: all 0.3s ease;
+  margin-bottom: 4px;
 }
 
 .problem-type-btn span {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  color: #475569;
-  transition: all 0.3s ease;
-}
-
-.problem-type-btn.active {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(37, 99, 235, 0.08));
-  border-color: #2563eb;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.2);
-  transform: translateY(-2px);
-}
-
-.problem-type-btn.active ion-icon {
-  color: #2563eb;
-  transform: scale(1.1);
-}
-
-.problem-type-btn.active span {
-  color: #2563eb;
-  font-weight: 700;
+  text-align: center;
 }
 
 /* Details Grid */
 .details-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 480px) {
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Photo Section */
 .photo-section {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95));
+  padding-bottom: 24px;
 }
 
 .photo-upload-zone {
-  border: 2px dashed rgba(148, 163, 184, 0.35);
-  border-radius: 16px;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 20px;
   padding: 40px 20px;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.6);
+  margin-bottom: 20px;
 }
 
 .photo-upload-zone:hover {
+  background: #f1f5f9;
   border-color: #2563eb;
-  background: rgba(37, 99, 235, 0.03);
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.1);
 }
 
 .upload-icon {
   width: 64px;
   height: 64px;
-  margin: 0 auto 16px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.08));
+  background: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0 auto 16px;
+  border: 2px solid #e2e8f0;
 }
 
 .upload-icon ion-icon {
@@ -792,96 +1002,145 @@ export default {
 }
 
 .upload-text {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0 0 8px 0;
+  margin: 0 0 8px;
+  color: #1e293b;
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
 .upload-hint {
-  font-size: 0.85rem;
-  color: #64748b;
   margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
 }
 
-.photo-preview-modern {
+/* Photos Grid */
+.photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.photo-item {
   position: relative;
+  aspect-ratio: 1;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
-.photo-preview-modern img {
+.photo-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.photo-item img {
   width: 100%;
-  height: auto;
-  max-height: 300px;
+  height: 100%;
   object-fit: cover;
-  display: block;
 }
 
-.remove-photo-btn {
+.remove-photo-btn-small {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 8px;
+  right: 8px;
   background: rgba(220, 38, 38, 0.95);
-  backdrop-filter: blur(10px);
-  color: white;
   border: none;
-  border-radius: 10px;
-  padding: 10px 16px;
-  font-size: 0.85rem;
-  font-weight: 700;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
   transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
 }
 
-.remove-photo-btn:hover {
+.remove-photo-btn-small:hover {
   background: rgba(185, 28, 28, 0.95);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.5);
+  transform: scale(1.1);
 }
 
-.remove-photo-btn ion-icon {
-  font-size: 18px;
+.remove-photo-btn-small ion-icon {
+  font-size: 20px;
+  color: white;
+}
+
+.photo-number {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.photo-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.add-more-btn {
+  background: rgba(37, 99, 235, 0.1);
+  border: 2px dashed rgba(37, 99, 235, 0.3);
+  border-radius: 16px;
+  padding: 14px 24px;
+  color: #2563eb;
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.add-more-btn:hover {
+  background: rgba(37, 99, 235, 0.15);
+  border-color: #2563eb;
+  transform: translateY(-2px);
+}
+
+.add-more-btn ion-icon {
+  font-size: 20px;
 }
 
 /* Form Actions */
 .form-actions {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 12px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border-radius: 20px;
-  border: 1px solid rgba(148, 163, 184, 0.15);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  position: sticky;
-  bottom: 20px;
-  z-index: 5;
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+  padding: 0 8px;
 }
 
 .cancel-btn-modern {
-  background: rgba(148, 163, 184, 0.15);
-  color: #475569;
-  border: 2px solid rgba(148, 163, 184, 0.25);
-  border-radius: 14px;
-  padding: 16px;
-  font-size: 0.95rem;
+  flex: 1;
+  background: #f1f5f9;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 18px 24px;
+  color: #64748b;
   font-weight: 700;
+  font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .cancel-btn-modern:hover:not(:disabled) {
-  background: rgba(148, 163, 184, 0.25);
-  border-color: rgba(148, 163, 184, 0.4);
+  background: #e2e8f0;
+  color: #475569;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .cancel-btn-modern:disabled {
@@ -890,74 +1149,77 @@ export default {
 }
 
 .submit-btn-modern {
+  flex: 2;
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  color: white;
   border: none;
-  border-radius: 14px;
-  padding: 16px;
-  font-size: 1rem;
+  border-radius: 16px;
+  padding: 18px 24px;
+  color: white;
   font-weight: 700;
-  cursor: pointer;
+  font-size: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
+  cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
-  position: relative;
-  overflow: hidden;
-}
-
-.submit-btn-modern::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.submit-btn-modern:hover:not(:disabled)::before {
-  opacity: 1;
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.3);
 }
 
 .submit-btn-modern:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(37, 99, 235, 0.45);
-}
-
-.submit-btn-modern:active:not(:disabled) {
-  transform: scale(0.98);
+  box-shadow: 0 6px 24px rgba(37, 99, 235, 0.4);
 }
 
 .submit-btn-modern:disabled {
-  background: rgba(148, 163, 184, 0.3);
-  color: rgba(15, 23, 42, 0.4);
-  box-shadow: none;
+  opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
-.submit-btn-modern ion-icon,
-.submit-btn-modern ion-spinner {
-  font-size: 22px;
+.submit-btn-modern ion-spinner,
+.submit-btn-modern ion-icon {
+  font-size: 24px;
 }
 
 /* Responsive */
 @media (max-width: 640px) {
+  .report-form-modern {
+    padding: 0 16px 24px;
+  }
+
+  .modal-hero-modern {
+    padding: 20px;
+  }
+
+  .form-section {
+    padding: 16px;
+  }
+
   .problem-type-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
-  .details-grid {
-    grid-template-columns: 1fr;
+
+  .photos-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
-  
+
   .form-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .problem-type-grid {
     grid-template-columns: 1fr;
   }
-  
-  .cancel-btn-modern {
-    order: 2;
+
+  .photos-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .hero-content h2 {
+    font-size: 1.3rem;
   }
 }
 </style>

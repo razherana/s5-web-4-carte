@@ -33,13 +33,23 @@
           <span class="chip">{{ reports.length }} rapports</span>
         </div>
         <div class="status-list">
-          <div class="status-item" v-for="item in statusStats" :key="item.status">
+          <div
+            class="status-item"
+            v-for="item in statusStats"
+            :key="item.status"
+          >
             <div class="status-header">
               <span>{{ item.label }}</span>
               <strong>{{ item.count }}</strong>
             </div>
             <div class="status-track">
-              <span class="status-fill" :style="{ width: item.percentage + '%', backgroundColor: item.color }"></span>
+              <span
+                class="status-fill"
+                :style="{
+                  width: item.percentage + '%',
+                  backgroundColor: item.color,
+                }"
+              ></span>
             </div>
           </div>
         </div>
@@ -47,219 +57,233 @@
     </ion-card-content>
   </ion-card>
 </template>
-  
-  <script>
-  import {
+
+<script>
+import {
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardSubtitle,
+  IonCardContent,
+  IonIcon,
+} from "@ionic/vue";
+import { statsChartOutline } from "ionicons/icons";
+import { statsChart } from "ionicons/icons";
+import { computed } from "vue";
+
+export default {
+  name: "StatsCard",
+  components: {
     IonCard,
     IonCardHeader,
     IonCardTitle,
     IonCardSubtitle,
     IonCardContent,
     IonIcon
-  } from '@ionic/vue';
-  import { statsChart } from 'ionicons/icons';
-  import { computed } from 'vue';
-  
-  export default {
-    name: 'StatsCard',
-    props: {
-      stats: {
-        type: Object,
-        default: () => ({
-          totalReports: 0,
-          totalSurface: 0,
-          totalBudget: 0,
-          progress: 0,
-          statusCounts: {
-            nouveau: 0,
-            en_cours: 0,
-            termine: 0
-          }
-        })
-      },
-      reports: {
-        type: Array,
-        default: () => []
-      }
-    },
-    setup(props) {
-      const statusStats = computed(() => {
-        const total = props.reports?.length || 0;
-        const statusInfo = [
-          { status: 'nouveau', label: 'Nouveau', color: '#f97316' },
-          { status: 'en_cours', label: 'En cours', color: '#38bdf8' },
-          { status: 'termine', label: 'Terminé', color: '#22c55e' }
-        ];
-        
-        // Utiliser l'opérateur de chaînage optionnel et des valeurs par défaut
-        const statusCounts = props.stats?.statusCounts || {
+  },
+  props: {
+    stats: {
+      type: Object,
+      default: () => ({
+        totalReports: 0,
+        totalSurface: 0,
+        totalBudget: 0,
+        progress: 0,
+        statusCounts: {
           nouveau: 0,
           en_cours: 0,
-          termine: 0
-        };
-        
-        return statusInfo.map(info => {
-          const count = statusCounts[info.status] || 0;
-          return {
-            ...info,
-            count,
-            percentage: total > 0 ? (count / total * 100) : 0
-          };
-        });
-      });
-  
-      return {
-        statsChart,
-        statusStats
+          termine: 0,
+        },
+      }),
+    },
+    reports: {
+      type: Array,
+      default: () => [],
+    },
+  },
+  setup(props) {
+    const statusStats = computed(() => {
+      const total = props.reports?.length || 0;
+      const statusInfo = [
+        { status: "nouveau", label: "Nouveau", color: "#f97316" },
+        { status: "en_cours", label: "En cours", color: "#38bdf8" },
+        { status: "termine", label: "Terminé", color: "#22c55e" },
+      ];
+
+      // Utiliser l'opérateur de chaînage optionnel et des valeurs par défaut
+      const statusCounts = props.stats?.statusCounts || {
+        nouveau: 0,
+        en_cours: 0,
+        termine: 0,
       };
-    }
-  };
-  </script>
-  
-  <style scoped>
-  .stats-shell {
-    border-radius: var(--app-radius-2xl);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(16px);
-  }
 
-  :deep(.stats-shell ion-card-header) {
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.7);
-    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-  }
+      return statusInfo.map((info) => {
+        const count = statusCounts[info.status] || 0;
+        return {
+          ...info,
+          count,
+          percentage: total > 0 ? (count / total) * 100 : 0,
+        };
+      });
+    });
 
-  :deep(.stats-shell ion-card-title) {
-    font-size: 1.2rem;
-    font-weight: 800;
-    color: #0f172a;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
+    return {
+      statsChart,
+      statsChartOutline,
+      statusStats,
+    };
+  },
+};
+</script>
 
-  :deep(.stats-shell ion-card-title ion-icon) {
-    font-size: 24px;
-    color: #2563eb;
-  }
+<style scoped>
+.stats-shell {
+  border-radius: var(--app-radius-2xl);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+}
 
-  :deep(.stats-shell ion-card-subtitle) {
-    font-size: 0.875rem;
-    color: #64748b;
-    font-weight: 500;
-    margin-top: 4px;
-  }
+:deep(.stats-shell ion-card-header) {
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.7);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+}
 
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: var(--app-space-md);
-  }
+:deep(.stats-shell ion-card-title) {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-  .metric {
-    padding: 18px;
-    border-radius: var(--app-radius-lg);
-    background: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    display: grid;
-    gap: 8px;
-    backdrop-filter: blur(10px);
-    transition: all 0.3s ease;
-  }
+:deep(.stats-shell ion-card-title ion-icon) {
+  font-size: 24px;
+  color: #2563eb;
+}
 
-  .metric:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.12);
-    border-color: rgba(37, 99, 235, 0.3);
-  }
+:deep(.stats-shell ion-card-subtitle) {
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-top: 4px;
+}
 
-  .metric h3 {
-    margin: 0;
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: #0f172a;
-  }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--app-space-md);
+}
 
-  .metric span {
-    font-size: 0.75rem;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 700;
-  }
+.metric {
+  padding: 18px;
+  border-radius: var(--app-radius-lg);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  display: grid;
+  gap: 8px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
 
-  .status-section {
-    margin-top: var(--app-space-lg);
-    padding-top: var(--app-space-lg);
-    border-top: 1px solid rgba(148, 163, 184, 0.15);
-  }
+.metric:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.3);
+}
 
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: var(--app-space-md);
-  }
+.metric h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+}
 
-  .section-header h4 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 700;
-    color: #0f172a;
-  }
+.metric span {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
 
-  .chip {
-    padding: 6px 12px;
-    border-radius: var(--app-radius-full);
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.08));
-    color: #2563eb;
-    font-size: 0.75rem;
-    font-weight: 700;
-    border: 1px solid rgba(37, 99, 235, 0.2);
-  }
+.status-section {
+  margin-top: var(--app-space-lg);
+  padding-top: var(--app-space-lg);
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+}
 
-  .status-list {
-    display: grid;
-    gap: 14px;
-  }
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--app-space-md);
+}
 
-  .status-item {
-    display: grid;
-    gap: 8px;
-  }
+.section-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
 
-  .status-header {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.85rem;
-  }
+.chip {
+  padding: 6px 12px;
+  border-radius: var(--app-radius-full);
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.12),
+    rgba(37, 99, 235, 0.08)
+  );
+  color: #2563eb;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
 
-  .status-header span {
-    color: #475569;
-    font-weight: 600;
-  }
+.status-list {
+  display: grid;
+  gap: 14px;
+}
 
-  .status-header strong {
-    color: #0f172a;
-    font-weight: 700;
-  }
+.status-item {
+  display: grid;
+  gap: 8px;
+}
 
-  .status-track {
-    width: 100%;
-    height: 12px;
-    border-radius: 999px;
-    background: rgba(148, 163, 184, 0.2);
-    overflow: hidden;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
 
-  .status-fill {
-    display: block;
-    height: 100%;
-    border-radius: 999px;
-    transition: width 0.6s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  }
-  </style>
+.status-header span {
+  color: #475569;
+  font-weight: 600;
+}
+
+.status-header strong {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.status-track {
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.status-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+</style>

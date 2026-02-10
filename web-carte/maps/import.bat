@@ -5,20 +5,15 @@ rem Script d'import des donnees OSM (Antananarivo ou Madagascar)
 
 cd /d "%~dp0"
 
-echo 🗺️  Demarrage du serveur OSM avec import des donnees...
-echo.
-echo 📦 Ce processus va :
-echo   - Importer le fichier antananarivo.osm.pbf (si disponible)
-echo   - Sinon importer madagascar-260118.osm.pbf
-echo   - Creer la base de donnees PostgreSQL
-echo   - Generer les tuiles de base
-echo.
-echo ⏱️  Duree estimee : 10-30 minutes selon votre machine
-echo.
+set "DATA_DIR=%~dp0data"
+if not exist "%DATA_DIR%\" (
+  echo ❌ Erreur : dossier ./data/ introuvable dans %~dp0
+  exit /b 1
+)
 
 rem Choisir le fichier a importer (priorite a Antananarivo)
-set "DATA_FILE=./data/antananarivo.osm.pbf"
-if not exist "%DATA_FILE%" set "DATA_FILE=./data/madagascar-260118.osm.pbf"
+set "DATA_FILE=%DATA_DIR%\antananarivo.osm.pbf"
+if not exist "%DATA_FILE%" set "DATA_FILE=%DATA_DIR%\madagascar-260118.osm.pbf"
 
 rem Verifier que le fichier OSM existe
 if not exist "%DATA_FILE%" (
@@ -30,15 +25,19 @@ if not exist "%DATA_FILE%" (
 )
 
 echo ✅ Fichier selectionne : %DATA_FILE%
-if exist "./data/antananarivo.osm.pbf" if exist "./data/madagascar-260118.osm.pbf" (
+if exist "%DATA_DIR%\antananarivo.osm.pbf" if exist "%DATA_DIR%\madagascar-260118.osm.pbf" (
   echo ⚠️  Attention : deux fichiers .osm.pbf detectes.
   echo     Gardez seulement antananarivo.osm.pbf pour un import cible.
 )
 
 rem Copier vers le nom attendu par le serveur
 echo 🧩 Preparation du fichier region.osm.pbf...
-copy /y "%DATA_FILE%" "./data/region.osm.pbf" >nul
-if errorlevel 1 exit /b 1
+set "REGION_FILE=%DATA_DIR%\region.osm.pbf"
+copy /y "%DATA_FILE%" "%REGION_FILE%" >nul
+if errorlevel 1 (
+  echo ❌ Erreur : impossible de copier vers %REGION_FILE%
+  exit /b 1
+)
 
 rem Nettoyer les donnees existantes si besoin
 set /p REPLY=⚠️  Supprimer les donnees existantes ? (y/N) 

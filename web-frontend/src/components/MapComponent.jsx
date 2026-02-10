@@ -1,78 +1,79 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import {
+  X,
+  CalendarDays,
+  MapPin,
+  Ruler,
+  Wallet,
+  Building2,
+  User,
+  Pencil,
+  CheckCircle2,
+  PlusCircle,
+  RefreshCw,
+  Trash2,
+  CircleDot,
+} from 'lucide-react';
+import { createPortal } from 'react-dom';
 import './MapComponent.css';
 
+/* ── Sync helpers ────────────────────────────────────────── */
+const SYNC_META = {
+  synced: { color: '#10b981', label: 'Synchronisé', Icon: CheckCircle2 },
+  created: { color: '#3b82f6', label: 'Créé (non sync.)', Icon: PlusCircle },
+  updated: { color: '#f59e0b', label: 'Modifié (non sync.)', Icon: RefreshCw },
+  deleted: { color: '#ef4444', label: 'Supprimé (en attente)', Icon: Trash2 },
+};
+
+const getSyncMeta = (synced) =>
+  SYNC_META[synced] ?? { color: '#6366f1', label: synced ?? '—', Icon: CircleDot };
+
+const createMarkerIcon = (synced) => {
+  const { color } = getSyncMeta(synced);
+  const svg = `
+    <svg width="36" height="46" viewBox="0 0 36 46" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="s" x="-20%" y="-10%" width="140%" height="130%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="${color}" flood-opacity=".35"/>
+        </filter>
+      </defs>
+      <path d="M18 1C9.163 1 2 8.163 2 17c0 12.5 16 27 16 27s16-14.5 16-27C34 8.163 26.837 1 18 1z"
+            fill="${color}" stroke="#fff" stroke-width="2.5" filter="url(#s)"/>
+      <circle cx="18" cy="17" r="6.5" fill="#fff" opacity=".95"/>
+    </svg>`;
+  return L.divIcon({
+    html: svg,
+    className: 'custom-marker',
+    iconSize: [36, 46],
+    iconAnchor: [18, 46],
+    tooltipAnchor: [0, -46],
+  });
+};
+
+/* ── Component ───────────────────────────────────────────── */
 const MapComponent = ({ reports, onReportClick, readOnly = false, canAddReport = false, onAddReport }) => {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markersRef = useRef([]);
   const tempMarkerRef = useRef(null);
+  const [selectedReport, setSelectedReport] = useState(null);
 
-  // Status colors and icons
-  const getMarkerColor = (status) => {
-    switch (status) {
-      case 'new':
-        return '#3b82f6'; // blue
-      case 'in_progress':
-        return '#f59e0b'; // orange
-      case 'completed':
-        return '#10b981'; // green
-      default:
-        return '#6366f1'; // default purple
-    }
-  };
-
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 'new':
-        return 'New';
-      case 'in_progress':
-        return 'In Progress';
-      case 'completed':
-        return 'Completed';
-      default:
-        return status;
-    }
-  };
-
-  const createCustomIcon = (status) => {
-    const color = getMarkerColor(status);
-    const svgIcon = `
-      <svg width="32" height="42" viewBox="0 0 32 42" xmlns="http://www.w3.org/2000/svg">
-        <path d="M16 0C7.163 0 0 7.163 0 16c0 12 16 26 16 26s16-14 16-26c0-8.837-7.163-16-16-16z" 
-              fill="${color}" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
-        <circle cx="16" cy="16" r="6" fill="white"/>
-      </svg>
-    `;
-    
-    return L.divIcon({
-      html: svgIcon,
-      className: 'custom-marker',
-      iconSize: [32, 42],
-      iconAnchor: [16, 42],
-      popupAnchor: [0, -42],
-    });
-  };
-
+  /* ── Map init ─────────────────────────────────────────── */
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
-
-    // Initialize map centered on Antananarivo
     mapInstance.current = L.map(mapRef.current, {
       center: [-18.8792, 47.5079],
       zoom: 13,
       zoomControl: true,
     });
-
-    // Use tile server from Docker (offline OpenStreetMap)
     const tileServerUrl = import.meta.env.VITE_TILE_SERVER_URL || 'http://localhost:8080';
     L.tileLayer(`${tileServerUrl}/tile/{z}/{x}/{y}.png`, {
       attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 19,
       minZoom: 10,
     }).addTo(mapInstance.current);
-
     return () => {
       if (mapInstance.current) {
         mapInstance.current.remove();
@@ -81,6 +82,7 @@ const MapComponent = ({ reports, onReportClick, readOnly = false, canAddReport =
     };
   }, []);
 
+  /* ── Temp marker (add-report) ─────────────────────────── */
   const clearTempMarker = () => {
     if (tempMarkerRef.current && mapInstance.current) {
       tempMarkerRef.current.remove();
@@ -88,8 +90,8 @@ const MapComponent = ({ reports, onReportClick, readOnly = false, canAddReport =
     }
   };
 
-  const createTempMarkerIcon = () => {
-    return L.icon({
+  const createTempMarkerIcon = () =>
+    L.icon({
       iconUrl:
         'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
       iconSize: [25, 41],
@@ -98,140 +100,181 @@ const MapComponent = ({ reports, onReportClick, readOnly = false, canAddReport =
       shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       shadowSize: [41, 41],
     });
-  };
 
-  const handleMapClick = (event) => {
-    if (!mapInstance.current || !canAddReport) return;
-
-    const { lat, lng } = event.latlng;
-    clearTempMarker();
-
-    tempMarkerRef.current = L.marker([lat, lng], {
-      icon: createTempMarkerIcon(),
-      draggable: true,
-    })
-      .addTo(mapInstance.current)
-      .bindPopup('Nouveau signalement<br/>Cliquez sur le marqueur pour confirmer')
-      .openPopup()
-      .on('click', () => {
-        const currentPosition = tempMarkerRef.current?.getLatLng();
-        if (onAddReport) {
-          onAddReport({
-            lat: currentPosition?.lat ?? lat,
-            lng: currentPosition?.lng ?? lng,
-          });
-        }
-        clearTempMarker();
-      });
-  };
+  const handleMapClick = useCallback(
+    (event) => {
+      if (!mapInstance.current || !canAddReport) return;
+      const { lat, lng } = event.latlng;
+      clearTempMarker();
+      tempMarkerRef.current = L.marker([lat, lng], {
+        icon: createTempMarkerIcon(),
+        draggable: true,
+      })
+        .addTo(mapInstance.current)
+        .bindPopup('Nouveau signalement<br/>Cliquez sur le marqueur pour confirmer')
+        .openPopup()
+        .on('click', () => {
+          const pos = tempMarkerRef.current?.getLatLng();
+          if (onAddReport) onAddReport({ lat: pos?.lat ?? lat, lng: pos?.lng ?? lng });
+          clearTempMarker();
+        });
+    },
+    [canAddReport, onAddReport],
+  );
 
   useEffect(() => {
     if (!mapInstance.current) return;
-
     mapInstance.current.off('click', handleMapClick);
+    if (canAddReport) mapInstance.current.on('click', handleMapClick);
+    return () => mapInstance.current?.off('click', handleMapClick);
+  }, [canAddReport, handleMapClick]);
 
-    if (canAddReport) {
-      mapInstance.current.on('click', handleMapClick);
-    }
-
-    return () => {
-      if (mapInstance.current) {
-        mapInstance.current.off('click', handleMapClick);
-      }
-    };
-  }, [canAddReport, onAddReport]);
-
+  /* ── Report markers ───────────────────────────────────── */
   useEffect(() => {
     if (!mapInstance.current || !reports) return;
-
-    // Clear existing markers
-    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    // Add new markers
     reports.forEach((report) => {
-      const latitude = report.latitude ?? report.lat;
-      const longitude = report.longitude ?? report.lng;
+      const lat = report.lat ?? report.latitude;
+      const lng = report.lng ?? report.longitude;
+      if (lat == null || lng == null) return;
 
-      if (latitude && longitude) {
-        const marker = L.marker([latitude, longitude], {
-          icon: createCustomIcon(report.status),
-        });
+      const marker = L.marker([lat, lng], { icon: createMarkerIcon(report.synced) });
+      const entrepriseName = report.entreprise?.name ?? '';
 
-        // Create popup content
-        const popupContent = `
-          <div class="map-popup">
-            <h3 class="popup-title">Report #${report.id}</h3>
-            <div class="popup-content">
-              <div class="popup-row">
-                <span class="popup-label">Status:</span>
-                <span class="status-badge status-${report.status}">${getStatusLabel(report.status)}</span>
-              </div>
-              <div class="popup-row">
-                <span class="popup-label">Date:</span>
-                <span>${new Date(report.created_at || report.date).toLocaleDateString()}</span>
-              </div>
-              <div class="popup-row">
-                <span class="popup-label">Surface:</span>
-                <span>${report.surface || 0} m²</span>
-              </div>
-              <div class="popup-row">
-                <span class="popup-label">Budget:</span>
-                <span>${parseFloat(report.budget || 0).toLocaleString()} Ar</span>
-              </div>
-              ${report.entreprise_id ? `
-                <div class="popup-row">
-                  <span class="popup-label">Company:</span>
-                  <span>${report.entreprise_id}</span>
-                </div>
-              ` : ''}
-              ${report.description ? `
-                <div class="popup-row">
-                  <span class="popup-label">Description:</span>
-                  <span class="popup-description">${report.description}</span>
-                </div>
-              ` : ''}
-            </div>
-            ${!readOnly ? `
-              <button class="popup-edit-btn" onclick="window.editReport(${report.id})">
-                Edit Report
-              </button>
-            ` : ''}
-          </div>
-        `;
+      const tooltipHtml = `
+        <div class="marker-tooltip">
+          <strong>Signalement #${report.id}</strong>
+          <span class="marker-tooltip-date">${report.date_signalement ?? ''}</span>
+          ${entrepriseName ? `<span class="marker-tooltip-company">${entrepriseName}</span>` : ''}
+        </div>`;
 
-        marker.bindPopup(popupContent, {
-          maxWidth: 300,
-          className: 'custom-popup',
-        });
+      marker.bindTooltip(tooltipHtml, {
+        direction: 'top',
+        offset: [0, -48],
+        className: 'custom-tooltip',
+        opacity: 1,
+      });
 
-        if (onReportClick) {
-          marker.on('click', () => onReportClick(report));
-        }
+      marker.on('click', () => {
+        setSelectedReport(report);
+        if (onReportClick) onReportClick(report);
+      });
 
-        marker.addTo(mapInstance.current);
-        markersRef.current.push(marker);
-      }
+      marker.addTo(mapInstance.current);
+      markersRef.current.push(marker);
     });
-  }, [reports, readOnly, onReportClick]);
-
-  // Make edit function available globally for popup
-  useEffect(() => {
-    window.editReport = (reportId) => {
-      if (onReportClick) {
-        const report = reports.find(r => r.id === reportId);
-        if (report) onReportClick(report);
-      }
-    };
-
-    return () => {
-      delete window.editReport;
-    };
   }, [reports, onReportClick]);
 
+  /* ── Sidebar close ────────────────────────────────────── */
+  const closeSidebar = () => setSelectedReport(null);
+
+  /* ── Detail row helper ────────────────────────────────── */
+  const DetailRow = ({ icon: Icon, label, value }) => (
+    <div className="detail-card">
+      <div className="detail-card-icon">
+        <Icon size={16} strokeWidth={2} />
+      </div>
+      <div className="detail-card-text">
+        <span className="detail-label">{label}</span>
+        <span className="detail-value">{value}</span>
+      </div>
+    </div>
+  );
+
+  /* ── Render ───────────────────────────────────────────── */
+  const syncMeta = selectedReport ? getSyncMeta(selectedReport.synced) : null;
+  const SyncIcon = syncMeta?.Icon;
+
   return (
-    <div className="map-wrapper">
+    <div className={`map-wrapper${selectedReport ? ' sidebar-visible' : ''}`}>
       <div ref={mapRef} className="map-container" />
+
+      {/* Overlay backdrop on mobile */}
+      {selectedReport &&
+        createPortal(
+          <div className="detail-overlay" onClick={closeSidebar} />,
+          document.body,
+        )}
+
+      {/* Detail sidebar */}
+      <div className={`detail-sidebar${selectedReport ? ' open' : ''}`}>
+        {selectedReport && (
+          <>
+            <button type="button" className="detail-sidebar-close" onClick={closeSidebar} aria-label="Fermer">
+              <X size={18} strokeWidth={2.5} />
+            </button>
+
+            <div className="detail-sidebar-header">
+              <div className="detail-sidebar-id">
+                <MapPin size={18} strokeWidth={2.5} style={{ color: syncMeta.color }} />
+                <h3>Signalement #{selectedReport.id}</h3>
+              </div>
+              <span className={`sync-badge sync-${selectedReport.synced ?? 'unknown'}`}>
+                <SyncIcon size={12} strokeWidth={2.5} />
+                {syncMeta.label}
+              </span>
+            </div>
+
+            <div className="detail-sidebar-body">
+              <DetailRow
+                icon={CalendarDays}
+                label="Date du signalement"
+                value={selectedReport.date_signalement ?? '—'}
+              />
+
+              <DetailRow
+                icon={MapPin}
+                label="Coordonnées"
+                value={`${Number(selectedReport.lat).toFixed(6)}, ${Number(selectedReport.lng).toFixed(6)}`}
+              />
+
+              <div className="detail-grid-2">
+                <DetailRow
+                  icon={Ruler}
+                  label="Surface"
+                  value={`${selectedReport.surface ?? 0} m²`}
+                />
+                <DetailRow
+                  icon={Wallet}
+                  label="Budget"
+                  value={`${parseFloat(selectedReport.budget ?? 0).toLocaleString()} Ar`}
+                />
+              </div>
+
+              {selectedReport.entreprise?.name && (
+                <DetailRow
+                  icon={Building2}
+                  label="Entreprise"
+                  value={selectedReport.entreprise.name}
+                />
+              )}
+
+              {selectedReport.user?.email && (
+                <DetailRow
+                  icon={User}
+                  label="Utilisateur"
+                  value={selectedReport.user.email}
+                />
+              )}
+            </div>
+
+            {!readOnly && (
+              <button
+                type="button"
+                className="detail-sidebar-edit-btn"
+                onClick={() => {
+                  if (onReportClick) onReportClick(selectedReport);
+                }}
+              >
+                <Pencil size={16} strokeWidth={2.5} />
+                Modifier le signalement
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

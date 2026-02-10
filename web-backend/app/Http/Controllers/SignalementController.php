@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Entreprise;
 use App\Models\Signalement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,9 +37,16 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'surface', type: 'number', format: 'float', example: 150.50),
         new OA\Property(property: 'budget', type: 'number', format: 'float', example: 5000.00),
         new OA\Property(property: 'entreprise_id', type: 'integer', example: 1),
+        new OA\Property(
+            property: 'entreprise',
+            type: 'object',
+            nullable: true,
+            properties: [
+                new OA\Property(property: 'name', type: 'string', example: 'AFW')
+            ]
+        ),
         new OA\Property(property: 'synced', type: 'string', enum: ['synced', 'created', 'updated', 'deleted'], example: 'synced'),
-        new OA\Property(property: 'user', ref: '#/components/schemas/User', nullable: true),
-        new OA\Property(property: 'entreprise', type: 'object', nullable: true)
+        new OA\Property(property: 'user', ref: '#/components/schemas/User', nullable: true)
     ]
 )]
 class SignalementController extends Controller
@@ -284,14 +292,14 @@ class SignalementController extends Controller
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['lat', 'lng', 'date_signalement', 'surface', 'budget', 'entreprise_id'],
+                required: ['lat', 'lng', 'date_signalement', 'surface', 'budget', 'entreprise_name'],
                 properties: [
                     new OA\Property(property: 'lat', type: 'number', format: 'float', example: -18.8792),
                     new OA\Property(property: 'lng', type: 'number', format: 'float', example: 47.5079),
                     new OA\Property(property: 'date_signalement', type: 'string', example: '2026-01-20'),
                     new OA\Property(property: 'surface', type: 'number', format: 'float', example: 150.50),
                     new OA\Property(property: 'budget', type: 'number', format: 'float', example: 5000.00),
-                    new OA\Property(property: 'entreprise_id', type: 'integer', example: 1)
+                    new OA\Property(property: 'entreprise_name', type: 'string', example: 'AFW')
                 ]
             )
         ),
@@ -327,8 +335,21 @@ class SignalementController extends Controller
             'date_signalement' => 'required|string',
             'surface' => 'required|numeric|min:0',
             'budget' => 'required|numeric|min:0',
-            'entreprise_id' => 'required|exists:entreprises,id',
+            'entreprise_name' => 'required_without:entreprise_id|string|min:1',
+            'entreprise_id' => 'required_without:entreprise_name|exists:entreprises,id',
         ]);
+
+        $entreprise = null;
+        if (!empty($validated['entreprise_name'])) {
+            $entrepriseName = trim($validated['entreprise_name']);
+            $entreprise = Entreprise::firstOrCreate(['name' => $entrepriseName]);
+        } elseif (!empty($validated['entreprise_id'])) {
+            $entreprise = Entreprise::find($validated['entreprise_id']);
+        }
+
+        if (!$entreprise) {
+            return $this->errorResponse('INVALID_ENTREPRISE', 'Entreprise not found', 422);
+        }
 
         // Get authenticated user
         $user = $request->user();
@@ -348,7 +369,10 @@ class SignalementController extends Controller
                     'date_signalement' => $validated['date_signalement'],
                     'surface' => (float) $validated['surface'],
                     'budget' => (float) $validated['budget'],
-                    'entreprise_id' => $validated['entreprise_id'],
+                    'entreprise_id' => $entreprise->id,
+                    'entreprise' => [
+                        'name' => $entreprise->name,
+                    ],
                 ]);
                 $syncedStatus = 'synced';
                 Log::info('Signalement created in Firestore successfully');
@@ -369,7 +393,7 @@ class SignalementController extends Controller
             'date_signalement' => $validated['date_signalement'],
             'surface' => $validated['surface'],
             'budget' => $validated['budget'],
-            'entreprise_id' => $validated['entreprise_id'],
+            'entreprise_id' => $entreprise->id,
             'synced' => $syncedStatus,
         ]);
 
@@ -403,7 +427,7 @@ class SignalementController extends Controller
                     new OA\Property(property: 'date_signalement', type: 'string', example: '2026-01-20'),
                     new OA\Property(property: 'surface', type: 'number', format: 'float', example: 150.50),
                     new OA\Property(property: 'budget', type: 'number', format: 'float', example: 5000.00),
-                    new OA\Property(property: 'entreprise_id', type: 'integer', example: 1)
+                    new OA\Property(property: 'entreprise_name', type: 'string', example: 'AFW')
                 ]
             )
         ),
@@ -450,8 +474,20 @@ class SignalementController extends Controller
             'date_signalement' => 'sometimes|string',
             'surface' => 'sometimes|numeric|min:0',
             'budget' => 'sometimes|numeric|min:0',
+            'entreprise_name' => 'sometimes|string|min:1',
             'entreprise_id' => 'sometimes|exists:entreprises,id',
         ]);
+
+        $entreprise = null;
+        if (!empty($validated['entreprise_name'])) {
+            $entrepriseName = trim($validated['entreprise_name']);
+            $entreprise = Entreprise::firstOrCreate(['name' => $entrepriseName]);
+            $validated['entreprise_id'] = $entreprise->id;
+        } elseif (!empty($validated['entreprise_id'])) {
+            $entreprise = Entreprise::find($validated['entreprise_id']);
+        }
+
+        unset($validated['entreprise_name']);
 
         // Try to update in Firestore first if internet is available
         $syncedStatus = $signalement->synced;
@@ -467,7 +503,14 @@ class SignalementController extends Controller
                 if (isset($validated['date_signalement'])) $updateData['date_signalement'] = $validated['date_signalement'];
                 if (isset($validated['surface'])) $updateData['surface'] = (float) $validated['surface'];
                 if (isset($validated['budget'])) $updateData['budget'] = (float) $validated['budget'];
-                if (isset($validated['entreprise_id'])) $updateData['entreprise_id'] = $validated['entreprise_id'];
+                if (isset($validated['entreprise_id'])) {
+                    $updateData['entreprise_id'] = $validated['entreprise_id'];
+                }
+                if ($entreprise) {
+                    $updateData['entreprise'] = [
+                        'name' => $entreprise->name,
+                    ];
+                }
 
                 $docRef->set($updateData, ['merge' => true]);
                 $syncedStatus = 'synced';
@@ -733,6 +776,8 @@ class SignalementController extends Controller
      */
     protected function formatForFirestore(Signalement $signalement): array
     {
+        $signalement->loadMissing('entreprise');
+
         return [
             'id' => $signalement->id,
             'user_id' => $signalement->user_id,
@@ -742,6 +787,9 @@ class SignalementController extends Controller
             'surface' => (float) $signalement->surface,
             'budget' => (float) $signalement->budget,
             'entreprise_id' => $signalement->entreprise_id,
+            'entreprise' => $signalement->entreprise ? [
+                'name' => $signalement->entreprise->name,
+            ] : null,
         ];
     }
 }

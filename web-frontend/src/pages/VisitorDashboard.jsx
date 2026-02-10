@@ -28,7 +28,7 @@ const VisitorDashboard = () => {
       setReports(data);
       setError("");
     } catch (err) {
-      setError("Failed to load reports. Please try again.");
+      setError("Failed to load reports. Please try to refresh the page.");
       console.error("Error loading reports:", err);
     } finally {
       setLoading(false);
@@ -80,12 +80,12 @@ const VisitorDashboard = () => {
               <span className="metric-value">{stats.totalReports}</span>
             </div>
             <div className="hero-metric">
-              <span className="metric-label">Completed</span>
-              <span className="metric-value">{stats.completedReports}</span>
+              <span className="metric-label">Synced</span>
+              <span className="metric-value">{stats.syncedReports}</span>
             </div>
             <div className="hero-metric">
-              <span className="metric-label">Progress</span>
-              <span className="metric-value">{stats.progressPercentage}%</span>
+              <span className="metric-label">Sync Rate</span>
+              <span className="metric-value">{stats.syncPercentage}%</span>
             </div>
           </div>
         </section>
@@ -101,16 +101,20 @@ const VisitorDashboard = () => {
             <h2 className="section-title">Reports Map</h2>
             <div className="map-legend">
               <div className="legend-item">
-                <div className="legend-dot legend-new"></div>
-                <span>New</span>
+                <div className="legend-dot legend-synced"></div>
+                <span>Synced</span>
               </div>
               <div className="legend-item">
-                <div className="legend-dot legend-in-progress"></div>
-                <span>In Progress</span>
+                <div className="legend-dot legend-created"></div>
+                <span>Created</span>
               </div>
               <div className="legend-item">
-                <div className="legend-dot legend-completed"></div>
-                <span>Completed</span>
+                <div className="legend-dot legend-updated"></div>
+                <span>Updated</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-dot legend-deleted"></div>
+                <span>Deleted</span>
               </div>
             </div>
             {isAuthenticated && (

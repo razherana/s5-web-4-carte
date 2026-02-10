@@ -176,6 +176,15 @@
   background: var(--success);
 }
 
+.breakdown-indicator.breakdown-danger {
+  background: var(--danger);
+}
+
+.breakdown-icon {
+  display: inline-flex;
+  color: var(--text-muted);
+}
+
 .breakdown-label {
   font-size: 0.9rem;
   color: var(--text-secondary);

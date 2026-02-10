@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { X } from 'lucide-react';
 import { reportService } from '../services/reportService';
 import { useAuth } from '../contexts/AuthContext';
 import './ReportCreateModal.css';
@@ -16,9 +17,10 @@ const ReportCreateModal = ({ isOpen, location, onClose, onCreated }) => {
   const [formData, setFormData] = useState({
     description: '',
     problem_type: 'nid_poule',
+    date_signalement: '',
     surface: '',
     budget: '',
-    entreprise_id: '',
+    entreprise_name: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -33,9 +35,10 @@ const ReportCreateModal = ({ isOpen, location, onClose, onCreated }) => {
       setFormData({
         description: '',
         problem_type: 'nid_poule',
+        date_signalement: '',
         surface: '',
         budget: '',
-        entreprise_id: '',
+        entreprise_name: '',
       });
       setError('');
       setSubmitting(false);
@@ -62,6 +65,11 @@ const ReportCreateModal = ({ isOpen, location, onClose, onCreated }) => {
       return;
     }
 
+    if (!formData.entreprise_name.trim()) {
+      setError("Le nom de l'entreprise est obligatoire.");
+      return;
+    }
+
     setSubmitting(true);
     setError('');
 
@@ -69,9 +77,10 @@ const ReportCreateModal = ({ isOpen, location, onClose, onCreated }) => {
       const payload = {
         description: formData.description.trim(),
         problem_type: formData.problem_type,
+        date_signalement: formData.date_signalement || null,
         surface: formData.surface ? Number(formData.surface) : null,
         budget: formData.budget ? Number(formData.budget) : null,
-        entreprise_id: formData.entreprise_id.trim() || null,
+        entreprise_name: formData.entreprise_name.trim(),
         latitude: location?.lat,
         longitude: location?.lng,
         lat: location?.lat,
@@ -104,7 +113,7 @@ const ReportCreateModal = ({ isOpen, location, onClose, onCreated }) => {
             <p className="report-modal-subtitle">Position: {coordsText}</p>
           </div>
           <button type="button" className="modal-close" onClick={onClose}>
-            ✕
+            <X size={18} />
           </button>
         </div>
 
@@ -142,6 +151,19 @@ const ReportCreateModal = ({ isOpen, location, onClose, onCreated }) => {
             ))}
           </select>
 
+          <label className="form-label" htmlFor="date_signalement">
+            Date du signalement
+          </label>
+          <input
+            id="date_signalement"
+            name="date_signalement"
+            type="date"
+            value={formData.date_signalement}
+            onChange={handleChange}
+            className="glass-input"
+            required
+          />
+
           <div className="report-form-grid">
             <div>
               <label className="form-label" htmlFor="surface">
@@ -175,17 +197,18 @@ const ReportCreateModal = ({ isOpen, location, onClose, onCreated }) => {
             </div>
           </div>
 
-          <label className="form-label" htmlFor="entreprise_id">
-            Entreprise (optionnel)
+          <label className="form-label" htmlFor="entreprise_name">
+            Entreprise
           </label>
           <input
-            id="entreprise_id"
-            name="entreprise_id"
+            id="entreprise_name"
+            name="entreprise_name"
             type="text"
-            value={formData.entreprise_id}
+            value={formData.entreprise_name}
             onChange={handleChange}
             className="glass-input"
-            placeholder="Nom ou identifiant de l'entreprise"
+            placeholder="Nom de l'entreprise"
+            required
           />
 
           <div className="report-form-actions">

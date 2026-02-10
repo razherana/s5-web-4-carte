@@ -212,16 +212,20 @@
   box-shadow: 0 0 8px currentColor;
 }
 
-.legend-new {
+.legend-synced {
+  background: var(--success);
+}
+
+.legend-created {
   background: var(--info);
 }
 
-.legend-in-progress {
+.legend-updated {
   background: var(--warning);
 }
 
-.legend-completed {
-  background: var(--success);
+.legend-deleted {
+  background: var(--danger);
 }
 
 .alert {

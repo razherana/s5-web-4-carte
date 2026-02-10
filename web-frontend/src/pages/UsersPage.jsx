@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppShell from '../components/AppShell';
-import { FaLockOpen, FaPlus, FaTrashAlt, FaUsers } from 'react-icons/fa';
+import { LockOpen, Plus, Trash2, Users } from 'lucide-react';
 import { userService } from '../services/userService';
 import './ManagementPages.css';
 
@@ -23,7 +23,7 @@ const UsersPage = () => {
       setUsers(data);
       setError('');
     } catch (err) {
-      setError('Failed to load users. Please try again.');
+      setError('Failed to load users. Please try to refresh the page.');
       console.error('Error loading users:', err);
     } finally {
       setLoading(false);
@@ -76,7 +76,7 @@ const UsersPage = () => {
           onClick={() => navigate('/manager/users/create')}
           className="btn-primary"
         >
-          <FaPlus />
+          <Plus size={16} />
           <span>Create User</span>
         </button>
       }
@@ -96,7 +96,7 @@ const UsersPage = () => {
       <div className="content-card glass-card">
         {users.length === 0 ? (
           <div className="empty-state">
-            <p className="empty-icon"><FaUsers /></p>
+            <p className="empty-icon"><Users size={40} /></p>
             <p className="empty-text">No users found</p>
           </div>
         ) : (
@@ -136,7 +136,7 @@ const UsersPage = () => {
                             className="btn-action btn-success"
                             title="Unblock user"
                           >
-                            <FaLockOpen />
+                            <LockOpen size={14} />
                             <span>Unblock</span>
                           </button>
                         )}
@@ -145,7 +145,7 @@ const UsersPage = () => {
                           className="btn-action btn-danger"
                           title="Delete user"
                         >
-                          <FaTrashAlt />
+                          <Trash2 size={14} />
                           <span>Delete</span>
                         </button>
                       </div>

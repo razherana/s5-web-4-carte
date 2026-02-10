@@ -338,7 +338,8 @@ class AuthController extends Controller
                 $existingUser->incrementLoginAttempts(true); // synced = true
 
                 // Update firestore too
-                new SyncController()->syncUsersManually($existingUser, $existingUser->firebase_uid);
+                if ($existingUser->firebase_uid)
+                    new SyncController()->syncUsersManually($existingUser, $existingUser->firebase_uid);
             }
             // Re-throw to allow fallback to local auth
             throw $failedEx;

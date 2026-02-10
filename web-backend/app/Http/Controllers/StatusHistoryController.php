@@ -74,7 +74,7 @@ class StatusHistoryController extends Controller
                 Log::info('Updating signalement ' . $signalement->id . ' in Firestore after status change');
 
                 $firestore = Firebase::firestore()->database();
-                $docRef = $firestore->collection('signalements')->document($signalement->firebase_uid);
+                $docRef = $firestore->collection('reporting')->document($signalement->firebase_uid);
 
                 // Format the signalement data for Firestore
                 $signalement->loadMissing(['entreprise', 'statusHistory']);
@@ -173,7 +173,7 @@ class StatusHistoryController extends Controller
         Log::info('Getting statistics from Firestore');
 
         $firestore = Firebase::firestore()->database();
-        $collection = $firestore->collection('signalements');
+        $collection = $firestore->collection('reporting');
         $documents = $collection->documents();
 
         $signalements = [];

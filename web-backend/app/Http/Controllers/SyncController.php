@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Log;
 use Kreait\Laravel\Firebase\Facades\Firebase;
 use OpenApi\Attributes as OA;
 
+use function Laravel\Prompts\error;
+
 class SyncController extends Controller
 {
     /**
@@ -94,9 +96,16 @@ class SyncController extends Controller
                 $docId = $user->firebase_uid ?? (string) $user->id;
                 $docRef = $collection->document($docId);
 
+                if ($user->firebase_uid === null) {
+                    $user->firebase_uid = $docId;
+                    error("User ID {$user->id} has no firebase_uid. Setting it to {$docId} for sync.");
+                    $user->save();
+                }
+
                 switch ($user->synced) {
                     case 'created':
                         $docRef->set($this->formatUserForFirestore($user));
+
                         $user->synced = 'synced';
                         $user->save();
                         $results['created']++;

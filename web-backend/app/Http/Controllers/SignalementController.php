@@ -128,7 +128,7 @@ class SignalementController extends Controller
         Log::info('Getting all signalements from Firestore');
 
         $firestore = Firebase::firestore()->database();
-        $collection = $firestore->collection('signalements');
+        $collection = $firestore->collection('reporting');
         $documents = $collection->documents();
 
         $signalements = [];
@@ -263,7 +263,7 @@ class SignalementController extends Controller
         }
 
         $firestore = Firebase::firestore()->database();
-        $docRef = $firestore->collection('signalements')->document($localSignalement->firebase_uid);
+        $docRef = $firestore->collection('reporting')->document($localSignalement->firebase_uid);
         $snapshot = $docRef->snapshot();
 
         if (!$snapshot->exists()) {
@@ -381,7 +381,7 @@ class SignalementController extends Controller
             try {
                 Log::info('Creating signalement in Firestore');
                 $firestore = Firebase::firestore()->database();
-                $docRef = $firestore->collection('signalements')->document($firebaseUid);
+                $docRef = $firestore->collection('reporting')->document($firebaseUid);
                 $docRef->set([
                     'user_id' => $user->id,
                     'lat' => (float) $validated['lat'],
@@ -538,7 +538,7 @@ class SignalementController extends Controller
             try {
                 Log::info('Updating signalement ' . $id . ' in Firestore');
                 $firestore = Firebase::firestore()->database();
-                $docRef = $firestore->collection('signalements')->document($signalement->firebase_uid);
+                $docRef = $firestore->collection('reporting')->document($signalement->firebase_uid);
 
                 $updateData = [];
                 if (isset($validated['lat'])) $updateData['lat'] = (float) $validated['lat'];
@@ -664,7 +664,7 @@ class SignalementController extends Controller
             try {
                 Log::info('Deleting signalement ' . $id . ' from Firestore');
                 $firestore = Firebase::firestore()->database();
-                $docRef = $firestore->collection('signalements')->document($signalement->firebase_uid);
+                $docRef = $firestore->collection('reporting')->document($signalement->firebase_uid);
                 $docRef->delete();
                 $deletedFromFirestore = true;
                 Log::info('Signalement ' . $id . ' deleted from Firestore successfully');
@@ -753,7 +753,7 @@ class SignalementController extends Controller
         try {
             Log::info('Connecting to Firestore...');
             $firestore = Firebase::firestore()->database();
-            $collection = $firestore->collection('signalements');
+            $collection = $firestore->collection('reporting');
 
             $results = [
                 'created' => 0,

@@ -85,7 +85,7 @@ const ReportCreateModal = ({ isOpen, location, onClose, onCreated }) => {
         longitude: location?.lng,
         lat: location?.lat,
         lng: location?.lng,
-        status: 'new',
+        status: 'pending',
         user_id: user.id,
         user_email: user.email,
       };

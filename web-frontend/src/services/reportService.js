@@ -83,6 +83,45 @@ export const reportService = {
   },
 
   /**
+   * Get all entreprises
+   * Matches backend: GET /api/entreprises
+   */
+  async getAllEntreprises() {
+    const response = await api.get('/entreprises');
+    return extractResponseData(response);
+  },
+
+  /**
+   * Get status history for a signalement
+   * Matches backend: GET /api/signalements/{id}/status-history
+   */
+  async getStatusHistory(id) {
+    const response = await api.get(`/signalements/${id}/status-history`);
+    return extractResponseData(response);
+  },
+
+  /**
+   * Add a status change to a signalement
+   * Matches backend: POST /api/signalements/{id}/status-history
+   * @param {string|number} id - Signalement ID
+   * @param {object} data - { status, changed_at?, notes? }
+   */
+  async addStatusChange(id, data) {
+    const response = await api.post(`/signalements/${id}/status-history`, data);
+    return extractResponseData(response);
+  },
+
+  /**
+   * Get processing time statistics (manager only)
+   * Matches backend: GET /api/statistics/processing-times
+   * Returns: { average_delays, per_signalement, summary }
+   */
+  async getProcessingStats() {
+    const response = await api.get('/statistics/processing-times');
+    return extractResponseData(response);
+  },
+
+  /**
    * Calculate statistics from a list of reports
    * Uses the `synced` field (synced | created | updated | deleted)
    * @param {Array} reports - Array of report objects
@@ -93,13 +132,30 @@ export const reportService = {
     const totalSurface = reports.reduce((sum, r) => sum + (parseFloat(r.surface) || 0), 0);
     const totalBudget = reports.reduce((sum, r) => sum + (parseFloat(r.budget) || 0), 0);
     
-    const syncedReports = reports.filter(r => r.synced === 'synced').length;
+    const syncedReports = reports.filter(r => r.synced === 'synced' || !r.synced).length;
     const createdReports = reports.filter(r => r.synced === 'created').length;
     const updatedReports = reports.filter(r => r.synced === 'updated').length;
     const deletedReports = reports.filter(r => r.synced === 'deleted').length;
     
     const syncPercentage = totalReports > 0 
       ? ((syncedReports / totalReports) * 100).toFixed(1)
+      : 0;
+
+    // Status statistics
+    const pendingReports = reports.filter(r => r.status === 'pending' || !r.status).length;
+    const inProgressReports = reports.filter(r => r.status === 'in_progress').length;
+    const resolvedReports = reports.filter(r => r.status === 'resolved').length;
+    const rejectedReports = reports.filter(r => r.status === 'rejected').length;
+
+    // Avancement: pending/rejected=0, in_progress=0.5, resolved=1
+    const avancementSum = reports.reduce((sum, r) => {
+      const status = r.status || 'pending';
+      if (status === 'resolved') return sum + 1;
+      if (status === 'in_progress') return sum + 0.5;
+      return sum; // pending, rejected = 0
+    }, 0);
+    const avancement = totalReports > 0
+      ? ((avancementSum / totalReports) * 100).toFixed(1)
       : 0;
 
     return {
@@ -111,6 +167,11 @@ export const reportService = {
       updatedReports,
       deletedReports,
       syncPercentage,
+      pendingReports,
+      inProgressReports,
+      resolvedReports,
+      rejectedReports,
+      avancement,
     };
   },
 };

@@ -22,7 +22,7 @@ fi
 echo "🧩 Extraction Antananarivo depuis Madagascar..."
 
 docker run --rm -v "$PWD/data:/data" stefda/osmium-tool \
-  osmium extract -b "$BBOX" /data/madagascar-260118.osm.pbf -o /data/antananarivo.osm.pbf
+  osmium extract -b "$BBOX" /data/madagascar-260118.osm.pbf -o /data/antananarivo.osm.pbf --overwrite
 
 echo "✅ Extraction terminée : $TARGET_PBF"
 

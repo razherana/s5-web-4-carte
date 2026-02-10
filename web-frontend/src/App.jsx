@@ -12,6 +12,8 @@ import ManagerDashboard from './pages/ManagerDashboard';
 import UsersPage from './pages/UsersPage';
 import CreateUserPage from './pages/CreateUserPage';
 import EditReportPage from './pages/EditReportPage';
+import ReportsPage from './pages/ReportsPage';
+import BlockedUsersPage from './pages/BlockedUsersPage';
 
 function App() {
   return (
@@ -82,6 +84,22 @@ function App() {
             element={
               <ProtectedRoute requireManager>
                 <EditReportPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/manager/reports"
+            element={
+              <ProtectedRoute requireManager>
+                <ReportsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/manager/users/blocked"
+            element={
+              <ProtectedRoute requireManager>
+                <BlockedUsersPage />
               </ProtectedRoute>
             }
           />

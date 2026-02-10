@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Entreprise;
 use App\Models\Signalement;
+use App\Models\SignalementStatusHistory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -138,6 +139,11 @@ class SignalementController extends Controller
         }
 
         // Apply filters
+        if ($request->has('status')) {
+            $status = $request->status;
+            $signalements = array_filter($signalements, fn($s) => ($s['status'] ?? null) == $status);
+        }
+
         if ($request->has('user_id')) {
             $userId = $request->user_id;
             $signalements = array_filter($signalements, fn($s) => ($s['user_id'] ?? null) == $userId);
@@ -160,11 +166,15 @@ class SignalementController extends Controller
     {
         Log::info('Getting all signalements from local database');
 
-        $query = Signalement::with(['user', 'entreprise']);
+        $query = Signalement::with(['user', 'entreprise', 'statusHistory']);
 
         // Apply filters
+        if ($request->has('sync_status')) {
+            $query->where('synced', $request->sync_status);
+        }
+
         if ($request->has('status')) {
-            $query->where('synced', $request->status);
+            $query->where('status', $request->status);
         }
 
         if ($request->has('user_id')) {
@@ -221,7 +231,7 @@ class SignalementController extends Controller
             )
         ]
     )]
-    public function show(int $id): JsonResponse
+    public function show(string $id): JsonResponse
     {
         // Try Firestore first if internet is available
         if ($this->hasInternetConnection()) {
@@ -238,12 +248,14 @@ class SignalementController extends Controller
     /**
      * Get a signalement from Firestore by ID.
      */
-    protected function showFromFirestore(int $id): JsonResponse
+    protected function showFromFirestore(string $id): JsonResponse
     {
         Log::info('Getting signalement ' . $id . ' from Firestore');
 
         // First get the signalement from local to get firebase_uid
-        $localSignalement = Signalement::find($id);
+        $localSignalement = is_numeric($id)
+            ? Signalement::find($id)
+            : Signalement::where('firebase_uid', $id)->first();
         if (!$localSignalement) {
             return $this->errorResponse('NOT_FOUND', 'Signalement not found', 404);
         }
@@ -268,11 +280,13 @@ class SignalementController extends Controller
     /**
      * Get a signalement from local database by ID.
      */
-    protected function showFromLocal(int $id): JsonResponse
+    protected function showFromLocal(string $id): JsonResponse
     {
         Log::info('Getting signalement ' . $id . ' from local database');
 
-        $signalement = Signalement::with(['user', 'entreprise'])->find($id);
+        $signalement = is_numeric($id)
+            ? Signalement::with(['user', 'entreprise', 'statusHistory'])->find($id)
+            : Signalement::with(['user', 'entreprise', 'statusHistory'])->where('firebase_uid', $id)->first();
 
         if (!$signalement) {
             return $this->errorResponse('NOT_FOUND', 'Signalement not found', 404);
@@ -337,6 +351,8 @@ class SignalementController extends Controller
             'budget' => 'required|numeric|min:0',
             'entreprise_name' => 'required_without:entreprise_id|string|min:1',
             'entreprise_id' => 'required_without:entreprise_name|exists:entreprises,id',
+            'status' => 'sometimes|string|in:pending,in_progress,resolved,rejected',
+            'notes' => 'sometimes|nullable|string|max:2000',
         ]);
 
         $entreprise = null;
@@ -373,6 +389,8 @@ class SignalementController extends Controller
                     'entreprise' => [
                         'name' => $entreprise->name,
                     ],
+                    'status' => $validated['status'] ?? 'pending',
+                    'notes' => $validated['notes'] ?? null,
                 ]);
                 $syncedStatus = 'synced';
                 Log::info('Signalement created in Firestore successfully');
@@ -394,10 +412,22 @@ class SignalementController extends Controller
             'surface' => $validated['surface'],
             'budget' => $validated['budget'],
             'entreprise_id' => $entreprise->id,
+            'status' => $validated['status'] ?? 'pending',
+            'notes' => $validated['notes'] ?? null,
             'synced' => $syncedStatus,
         ]);
 
         $signalement->load(['user', 'entreprise']);
+
+        // Record initial status in history
+        SignalementStatusHistory::create([
+            'signalement_id' => $signalement->id,
+            'status' => $signalement->status ?? 'pending',
+            'changed_at' => now(),
+            'notes' => 'Initial status',
+        ]);
+
+        $signalement->load('statusHistory');
         Log::info('Signalement ' . $signalement->id . ' created successfully (synced: ' . $syncedStatus . ')');
 
         return $this->successResponse($signalement, 201);
@@ -460,9 +490,11 @@ class SignalementController extends Controller
             )
         ]
     )]
-    public function update(Request $request, int $id): JsonResponse
+    public function update(Request $request, string $id): JsonResponse
     {
-        $signalement = Signalement::find($id);
+        $signalement = is_numeric($id)
+            ? Signalement::find($id)
+            : Signalement::where('firebase_uid', $id)->first();
 
         if (!$signalement) {
             return $this->errorResponse('NOT_FOUND', 'Signalement not found', 404);
@@ -476,6 +508,8 @@ class SignalementController extends Controller
             'budget' => 'sometimes|numeric|min:0',
             'entreprise_name' => 'sometimes|string|min:1',
             'entreprise_id' => 'sometimes|exists:entreprises,id',
+            'status' => 'sometimes|string|in:pending,in_progress,resolved,rejected',
+            'notes' => 'sometimes|nullable|string|max:2000',
         ]);
 
         $entreprise = null;
@@ -511,6 +545,8 @@ class SignalementController extends Controller
                         'name' => $entreprise->name,
                     ];
                 }
+                if (isset($validated['status'])) $updateData['status'] = $validated['status'];
+                if (array_key_exists('notes', $validated)) $updateData['notes'] = $validated['notes'];
 
                 $docRef->set($updateData, ['merge' => true]);
                 $syncedStatus = 'synced';
@@ -532,9 +568,23 @@ class SignalementController extends Controller
 
         // Update in local database
         Log::info('Updating signalement ' . $id . ' in local database');
+
+        // Check if status is changing
+        $oldStatus = $signalement->status;
         $validated['synced'] = $syncedStatus;
         $signalement->update($validated);
-        $signalement->load(['user', 'entreprise']);
+
+        // Record status change in history if status changed
+        if (isset($validated['status']) && $validated['status'] !== $oldStatus) {
+            SignalementStatusHistory::create([
+                'signalement_id' => $signalement->id,
+                'status' => $validated['status'],
+                'changed_at' => now(),
+                'notes' => $validated['notes'] ?? null,
+            ]);
+        }
+
+        $signalement->load(['user', 'entreprise', 'statusHistory']);
 
         Log::info('Signalement ' . $id . ' updated successfully (synced: ' . $syncedStatus . ')');
 
@@ -586,9 +636,11 @@ class SignalementController extends Controller
             )
         ]
     )]
-    public function destroy(int $id): JsonResponse
+    public function destroy(string $id): JsonResponse
     {
-        $signalement = Signalement::find($id);
+        $signalement = is_numeric($id)
+            ? Signalement::find($id)
+            : Signalement::where('firebase_uid', $id)->first();
 
         if (!$signalement) {
             return $this->errorResponse('NOT_FOUND', 'Signalement not found', 404);
@@ -776,7 +828,15 @@ class SignalementController extends Controller
      */
     protected function formatForFirestore(Signalement $signalement): array
     {
-        $signalement->loadMissing('entreprise');
+        $signalement->loadMissing(['entreprise', 'statusHistory']);
+
+        $statusHistory = $signalement->statusHistory->map(function ($entry) {
+            return [
+                'status' => $entry->status,
+                'changed_at' => $entry->changed_at?->toISOString(),
+                'notes' => $entry->notes,
+            ];
+        })->toArray();
 
         return [
             'id' => $signalement->id,
@@ -790,6 +850,9 @@ class SignalementController extends Controller
             'entreprise' => $signalement->entreprise ? [
                 'name' => $signalement->entreprise->name,
             ] : null,
+            'status' => $signalement->status ?? 'pending',
+            'notes' => $signalement->notes,
+            'status_history' => $statusHistory,
         ];
     }
 }

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import MapComponent from "../components/MapComponent";
 import StatsCard from "../components/StatsCard";
+import AvancementCard from "../components/AvancementCard";
 import ReportCreateModal from "../components/ReportCreateModal";
 import { reportService } from "../services/reportService";
 import "./Dashboard.css";
@@ -93,6 +94,7 @@ const VisitorDashboard = () => {
         <section className="dashboard-row">
           <div className="dashboard-column">
             <StatsCard reports={reports} />
+            <AvancementCard reports={reports} />
           </div>
         </section>
 

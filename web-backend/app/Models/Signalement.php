@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Signalement extends Model
 {
@@ -24,6 +25,8 @@ class Signalement extends Model
         'surface',
         'budget',
         'entreprise_id',
+        'status',
+        'notes',
         'synced',
     ];
 
@@ -63,5 +66,13 @@ class Signalement extends Model
     public function entreprise(): BelongsTo
     {
         return $this->belongsTo(Entreprise::class);
+    }
+
+    /**
+     * Get the status history for this signalement.
+     */
+    public function statusHistory(): HasMany
+    {
+        return $this->hasMany(SignalementStatusHistory::class)->orderBy('changed_at', 'asc');
     }
 }

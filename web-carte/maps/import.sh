@@ -37,21 +37,9 @@ fi
 echo "🧩 Préparation du fichier region.osm.pbf..."
 cp -f "$DATA_FILE" ./data/region.osm.pbf
 
-# Nettoyer les données existantes si besoin
-read -p "⚠️  Supprimer les données existantes ? (y/N) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "🧹 Nettoyage des volumes Docker..."
-    docker-compose down -v
-fi
-
 # Lancer l'import en mode dédié
 echo "🚀 Lancement de l'import (cela peut prendre du temps)..."
-docker-compose run --rm osm-tileserver import
-
-# Démarrer le serveur en mode run
-echo "✅ Import terminé. Démarrage du serveur..."
-docker-compose up -d
+docker compose run --rm osm-tileserver import
 
 echo ""
 echo "✅ Serveur démarré !"

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AppShell from '../components/AppShell';
+import StatusTimeline from '../components/StatusTimeline';
 import { reportService } from '../services/reportService';
-import { ArrowLeft, MapPin, CalendarDays, Building2, Ruler, Wallet } from 'lucide-react';
+import { ArrowLeft, MapPin, CalendarDays, Building2, Ruler, Wallet, Plus } from 'lucide-react';
 import './ManagementPages.css';
 
 const EditReportPage = () => {
@@ -13,10 +14,16 @@ const EditReportPage = () => {
     budget: '',
     entreprise_name: '',
     date_signalement: '',
+    notes: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [statusHistory, setStatusHistory] = useState([]);
+  const [newStatus, setNewStatus] = useState('');
+  const [statusDate, setStatusDate] = useState('');
+  const [statusNotes, setStatusNotes] = useState('');
+  const [addingStatus, setAddingStatus] = useState(false);
 
   useEffect(() => {
     if (location.state?.report) {
@@ -26,9 +33,49 @@ const EditReportPage = () => {
         budget: report.budget || '',
         entreprise_name: report.entreprise?.name || '',
         date_signalement: report.date_signalement || '',
+        notes: report.notes || '',
       });
+      // Load status history
+      setStatusHistory(report.status_history || []);
+      loadStatusHistory(report.id || report.firebase_uid);
     }
   }, [location]);
+
+  const loadStatusHistory = async (id) => {
+    if (!id) return;
+    try {
+      const data = await reportService.getStatusHistory(id);
+      if (data && Array.isArray(data)) {
+        setStatusHistory(data);
+      }
+    } catch (err) {
+      console.error('Error loading status history:', err);
+    }
+  };
+
+  const handleAddStatusChange = async () => {
+    if (!newStatus || !statusDate) return;
+    const reportId = location.state?.report?.id || location.state?.report?.firebase_uid;
+    if (!reportId) return;
+
+    setAddingStatus(true);
+    try {
+      await reportService.addStatusChange(reportId, {
+        status: newStatus,
+        changed_at: statusDate,
+        notes: statusNotes || undefined,
+      });
+      setMessage({ type: 'success', text: `Statut changé en "${newStatus}"` });
+      setNewStatus('');
+      setStatusDate('');
+      setStatusNotes('');
+      await loadStatusHistory(reportId);
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Erreur lors du changement de statut' });
+    } finally {
+      setAddingStatus(false);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -151,6 +198,75 @@ const EditReportPage = () => {
                 className="glass-input"
                 disabled={loading}
               />
+            </div>
+
+            <div className="form-group form-group-full">
+              <label htmlFor="notes" className="form-label">Notes</label>
+              <textarea
+                id="notes"
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                className="glass-input"
+                placeholder="Add notes about this report..."
+                rows={3}
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          {/* Status History Timeline */}
+          <div className="form-group form-group-full">
+            <label className="form-label">Historique des statuts</label>
+            <StatusTimeline history={statusHistory} />
+
+            {/* Add status change form */}
+            <div className="status-change-form">
+              <div className="form-group">
+                <label className="form-label">Nouveau statut</label>
+                <select
+                  className="glass-input"
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value)}
+                  disabled={addingStatus}
+                >
+                  <option value="">-- Choisir --</option>
+                  <option value="pending">En attente</option>
+                  <option value="in_progress">En cours</option>
+                  <option value="resolved">Résolu</option>
+                  <option value="rejected">Rejeté</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Date et heure</label>
+                <input
+                  type="datetime-local"
+                  className="glass-input"
+                  value={statusDate}
+                  onChange={(e) => setStatusDate(e.target.value)}
+                  disabled={addingStatus}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Note (optionnel)</label>
+                <input
+                  type="text"
+                  className="glass-input"
+                  placeholder="Raison du changement..."
+                  value={statusNotes}
+                  onChange={(e) => setStatusNotes(e.target.value)}
+                  disabled={addingStatus}
+                />
+              </div>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleAddStatusChange}
+                disabled={!newStatus || !statusDate || addingStatus}
+              >
+                {addingStatus ? '...' : <><Plus size={14} /> Ajouter</>}
+              </button>
             </div>
           </div>
 

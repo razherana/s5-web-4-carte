@@ -4,17 +4,29 @@ import AppShell from '../components/AppShell';
 import MapComponent from '../components/MapComponent';
 import ReportCreateModal from '../components/ReportCreateModal';
 import StatsCard from '../components/StatsCard';
+import AvancementCard from '../components/AvancementCard';
 import { reportService } from '../services/reportService';
-import { userService } from '../services/userService';
+import { syncService } from '../services/syncService';
 import { useAuth } from '../contexts/AuthContext';
-import { RefreshCw, Users, UserCog, CheckCircle2, PlusCircle, Pencil, Trash2, Eye } from 'lucide-react';
+import {
+  RefreshCw,
+  Users,
+  UserCog,
+  PlusCircle,
+  Eye,
+  FileText,
+  ShieldOff,
+  Upload,
+  CloudDownload,
+} from 'lucide-react';
 import './Dashboard.css';
 
 const ManagerDashboard = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [syncingUsers, setSyncingUsers] = useState(false);
+  const [syncingAll, setSyncingAll] = useState(false);
+  const [pulling, setPulling] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -46,7 +58,7 @@ const ManagerDashboard = () => {
 
     try {
       await reportService.syncWithFirebase();
-      setMessage({ type: 'success', text: 'Successfully synced with Firebase!' });
+      setMessage({ type: 'success', text: 'Successfully synced reports with Firebase!' });
       await loadReports();
     } catch (err) {
       setMessage({ 
@@ -58,20 +70,50 @@ const ManagerDashboard = () => {
     }
   };
 
-  const handleSyncUsers = async () => {
-    setSyncingUsers(true);
+  const handleSyncAll = async () => {
+    setSyncingAll(true);
     setMessage({ type: '', text: '' });
 
     try {
-      await userService.syncWithFirebase();
-      setMessage({ type: 'success', text: 'Successfully synced users with Firebase!' });
+      const result = await syncService.syncAll();
+      const r = result.results;
+      const summary = [
+        `Users: ${r.users.created} created, ${r.users.updated} updated, ${r.users.deleted} deleted`,
+        `Reports: ${r.signalements.created} created, ${r.signalements.updated} updated, ${r.signalements.deleted} deleted`,
+        `Entreprises: ${r.entreprises.synced} synced`,
+      ].join(' | ');
+      setMessage({ type: 'success', text: `Full sync completed! ${summary}` });
+      await loadReports();
     } catch (err) {
       setMessage({ 
         type: 'error', 
-        text: err.response?.data?.message || 'User sync failed. Please try again.' 
+        text: err.message || 'Full sync failed. Please try again.' 
       });
     } finally {
-      setSyncingUsers(false);
+      setSyncingAll(false);
+    }
+  };
+
+  const handlePullFromFirebase = async () => {
+    setPulling(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const result = await syncService.pullFromFirebase();
+      const r = result.results;
+      const summary = [
+        `Signalements: ${r.signalements.imported} imported, ${r.signalements.updated} updated`,
+        `Users: ${r.users.imported} imported, ${r.users.updated} updated`,
+      ].join(' | ');
+      setMessage({ type: 'success', text: `Pull from Firebase completed! ${summary}` });
+      await loadReports();
+    } catch (err) {
+      setMessage({ 
+        type: 'error', 
+        text: err.message || 'Pull failed. Please try again.' 
+      });
+    } finally {
+      setPulling(false);
     }
   };
 
@@ -102,6 +144,42 @@ const ManagerDashboard = () => {
       actions={
         <>
           <button
+            onClick={handlePullFromFirebase}
+            className="glass-button"
+            disabled={pulling}
+            title="Retrieve data from Firebase"
+          >
+            {pulling ? (
+              <>
+                <div className="spinner-small"></div>
+                <span>Pulling...</span>
+              </>
+            ) : (
+              <>
+                <span className="button-icon"><CloudDownload size={16} /></span>
+                <span>Pull Firebase</span>
+              </>
+            )}
+          </button>
+          <button
+            onClick={handleSyncAll}
+            className="glass-button"
+            disabled={syncingAll}
+            title="Sync all data to Firebase"
+          >
+            {syncingAll ? (
+              <>
+                <div className="spinner-small"></div>
+                <span>Syncing All...</span>
+              </>
+            ) : (
+              <>
+                <span className="button-icon"><Upload size={16} /></span>
+                <span>Sync All</span>
+              </>
+            )}
+          </button>
+          <button
             onClick={handleSync}
             className="glass-button"
             disabled={syncing}
@@ -115,23 +193,6 @@ const ManagerDashboard = () => {
               <>
                 <span className="button-icon"><RefreshCw size={16} /></span>
                 <span>Sync Reports</span>
-              </>
-            )}
-          </button>
-          <button
-            onClick={handleSyncUsers}
-            className="glass-button"
-            disabled={syncingUsers}
-          >
-            {syncingUsers ? (
-              <>
-                <div className="spinner-small"></div>
-                <span>Syncing...</span>
-              </>
-            ) : (
-              <>
-                <span className="button-icon"><Users size={16} /></span>
-                <span>Sync Users</span>
               </>
             )}
           </button>
@@ -162,8 +223,16 @@ const ManagerDashboard = () => {
               <span className="metric-value">{stats.totalReports}</span>
             </div>
             <div className="hero-metric">
-              <span className="metric-label">Synced</span>
-              <span className="metric-value">{stats.syncedReports}</span>
+              <span className="metric-label">Pending</span>
+              <span className="metric-value">{stats.pendingReports}</span>
+            </div>
+            <div className="hero-metric">
+              <span className="metric-label">In Progress</span>
+              <span className="metric-value">{stats.inProgressReports}</span>
+            </div>
+            <div className="hero-metric">
+              <span className="metric-label">Resolved</span>
+              <span className="metric-value">{stats.resolvedReports}</span>
             </div>
             <div className="hero-metric">
               <span className="metric-label">Sync Rate</span>
@@ -175,6 +244,7 @@ const ManagerDashboard = () => {
         <section className="dashboard-row">
           <div className="dashboard-column">
             <StatsCard reports={reports} />
+            <AvancementCard reports={reports} />
             
             <div className="quick-actions glass-card">
               <h3 className="section-title">Quick Actions</h3>
@@ -185,6 +255,27 @@ const ManagerDashboard = () => {
                 >
                   <Users size={16} />
                   <span>Manage Users</span>
+                </button>
+                <button
+                  className="glass-button"
+                  onClick={() => navigate('/manager/reports')}
+                >
+                  <FileText size={16} />
+                  <span>Manage Reports</span>
+                </button>
+                <button
+                  className="glass-button"
+                  onClick={() => navigate('/manager/users/blocked')}
+                >
+                  <ShieldOff size={16} />
+                  <span>Blocked Users</span>
+                </button>
+                <button
+                  className="glass-button"
+                  onClick={() => navigate('/manager/users/create')}
+                >
+                  <PlusCircle size={16} />
+                  <span>Create User</span>
                 </button>
                 <Link className="glass-button" to="/profile">
                   <UserCog size={16} />

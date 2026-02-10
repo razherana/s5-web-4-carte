@@ -84,7 +84,7 @@ class User extends Authenticatable
         $maxAttempts = config('auth.max_login_attempts', 3);
 
         if ($this->login_attempts >= $maxAttempts) {
-            $lockoutDuration = config('auth.lockout_duration', 900);
+            $lockoutDuration = (int) config('auth.lockout_duration', 900);
             $this->locked_until = now()->addSeconds($lockoutDuration);
         }
 

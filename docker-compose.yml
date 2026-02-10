@@ -32,6 +32,7 @@ services:
       GOOGLE_APPLICATION_CREDENTIALS: /var/www/html/firebase-private-key.json
     volumes:
       - ./web-backend:/var/www/html
+      - /usr/local/pgsql
     depends_on:
       - db
 
@@ -71,7 +72,7 @@ services:
     platform: linux/amd64
     volumes:
       - osm-data:/data/database/
-      - ./web-carte/maps/data/region.osm.pbf:/data/region.osm.pbf
+      - ./web-carte/maps/data:/data
     ports:
       - "8080:80"
     environment:

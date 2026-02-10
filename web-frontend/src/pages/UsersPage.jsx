@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppShell from '../components/AppShell';
-import { LockOpen, Plus, Trash2, Users } from 'lucide-react';
+import { LockOpen, Lock, Plus, Trash2, Users, Pencil, ShieldOff, RefreshCw } from 'lucide-react';
 import { userService } from '../services/userService';
+import { syncService } from '../services/syncService';
 import './ManagementPages.css';
 
 const UsersPage = () => {
@@ -10,6 +11,7 @@ const UsersPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [syncingUsers, setSyncingUsers] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -43,6 +45,38 @@ const UsersPage = () => {
     }
   };
 
+  const handleBlock = async (userId) => {
+    if (!window.confirm('Are you sure you want to block this user?')) return;
+
+    try {
+      await userService.blockUser(userId);
+      setMessage({ type: 'success', text: 'User blocked successfully!' });
+      await loadUsers();
+    } catch (err) {
+      setMessage({ 
+        type: 'error', 
+        text: err.response?.data?.message || 'Failed to block user.' 
+      });
+    }
+  };
+
+  const handleSyncUsers = async () => {
+    setSyncingUsers(true);
+    setMessage({ type: '', text: '' });
+    try {
+      await syncService.syncUsers();
+      setMessage({ type: 'success', text: 'Users synced with Firebase!' });
+      await loadUsers();
+    } catch (err) {
+      setMessage({
+        type: 'error',
+        text: err.message || 'Failed to sync users.',
+      });
+    } finally {
+      setSyncingUsers(false);
+    }
+  };
+
   const handleDelete = async (userId) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
 
@@ -72,13 +106,34 @@ const UsersPage = () => {
       title="User Management"
       subtitle="Manage user accounts and permissions"
       actions={
-        <button
-          onClick={() => navigate('/manager/users/create')}
-          className="btn-primary"
-        >
-          <Plus size={16} />
-          <span>Create User</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={handleSyncUsers}
+            className="glass-button"
+            disabled={syncingUsers}
+          >
+            {syncingUsers ? (
+              <div className="spinner-small"></div>
+            ) : (
+              <RefreshCw size={16} />
+            )}
+            <span>{syncingUsers ? 'Syncing...' : 'Sync Users'}</span>
+          </button>
+          <button
+            onClick={() => navigate('/manager/users/blocked')}
+            className="glass-button"
+          >
+            <ShieldOff size={16} />
+            <span>Blocked Users</span>
+          </button>
+          <button
+            onClick={() => navigate('/manager/users/create')}
+            className="btn-primary"
+          >
+            <Plus size={16} />
+            <span>Create User</span>
+          </button>
+        </div>
       }
     >
       {error && (
@@ -130,7 +185,7 @@ const UsersPage = () => {
                     </td>
                     <td>
                       <div className="action-buttons">
-                        {user.blocked && (
+                        {user.blocked ? (
                           <button
                             onClick={() => handleUnblock(user.id)}
                             className="btn-action btn-success"
@@ -138,6 +193,15 @@ const UsersPage = () => {
                           >
                             <LockOpen size={14} />
                             <span>Unblock</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleBlock(user.id)}
+                            className="btn-action btn-warning"
+                            title="Block user"
+                          >
+                            <Lock size={14} />
+                            <span>Block</span>
                           </button>
                         )}
                         <button

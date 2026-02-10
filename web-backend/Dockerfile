@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
 # Install the gRPC and protobuf extensions via PECL
 # The printf "|\\n" automatically answers the interactive prompt for protobuf version
 RUN pecl install grpc && \
-    printf "|\\n" | pecl install protobuf \
+    printf "|\\n" | pecl install protobuf  \
     && docker-php-ext-install pdo pdo_pgsql pgsql \
     && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
     && docker-php-ext-enable grpc protobuf pdo pgsql pdo_pgsql \

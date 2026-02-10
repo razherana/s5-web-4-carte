@@ -255,6 +255,8 @@ class AuthController extends Controller
      */
     protected function loginWithCredentials(Request $request): JsonResponse
     {
+        error('Attempting local authentication for ' . $request->input('email'));
+
         $validated = $request->validate([
             'email' => 'required|email',
             'password' => 'required',

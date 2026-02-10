@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { FaChartLine, FaMapMarkerAlt, FaRulerCombined, FaWallet } from 'react-icons/fa';
+import { MapPin, Ruler, Wallet, TrendingUp, CheckCircle2, PlusCircle, RefreshCw, Trash2 } from 'lucide-react';
 import { reportService } from '../services/reportService';
 import './StatsCard.css';
 
@@ -10,10 +10,11 @@ const StatsCard = ({ reports }) => {
         totalReports: 0,
         totalSurface: '0',
         totalBudget: '0',
-        completedReports: 0,
-        inProgressReports: 0,
-        newReports: 0,
-        progressPercentage: '0',
+        syncedReports: 0,
+        createdReports: 0,
+        updatedReports: 0,
+        deletedReports: 0,
+        syncPercentage: '0',
       };
     }
     return reportService.getStatistics(reports);
@@ -23,44 +24,53 @@ const StatsCard = ({ reports }) => {
     {
       label: 'Total Reports',
       value: stats.totalReports,
-      icon: <FaMapMarkerAlt />,
+      icon: <MapPin size={20} />,
       color: 'primary',
     },
     {
       label: 'Total Surface',
       value: `${parseFloat(stats.totalSurface).toLocaleString()} m²`,
-      icon: <FaRulerCombined />,
+      icon: <Ruler size={20} />,
       color: 'info',
     },
     {
       label: 'Total Budget',
       value: `${parseFloat(stats.totalBudget).toLocaleString()} Ar`,
-      icon: <FaWallet />,
+      icon: <Wallet size={20} />,
       color: 'success',
     },
     {
-      label: 'Progress',
-      value: `${stats.progressPercentage}%`,
-      icon: <FaChartLine />,
+      label: 'Synced',
+      value: `${stats.syncPercentage}%`,
+      icon: <TrendingUp size={20} />,
       color: 'warning',
     },
   ];
 
-  const statusBreakdown = [
+  const syncBreakdown = [
     {
-      label: 'New',
-      value: stats.newReports,
-      color: 'info',
-    },
-    {
-      label: 'In Progress',
-      value: stats.inProgressReports,
-      color: 'warning',
-    },
-    {
-      label: 'Completed',
-      value: stats.completedReports,
+      label: 'Synced',
+      value: stats.syncedReports,
       color: 'success',
+      icon: <CheckCircle2 size={14} />,
+    },
+    {
+      label: 'Created (pending)',
+      value: stats.createdReports,
+      color: 'info',
+      icon: <PlusCircle size={14} />,
+    },
+    {
+      label: 'Updated (pending)',
+      value: stats.updatedReports,
+      color: 'warning',
+      icon: <RefreshCw size={14} />,
+    },
+    {
+      label: 'Deleted (pending)',
+      value: stats.deletedReports,
+      color: 'danger',
+      icon: <Trash2 size={14} />,
     },
   ];
 
@@ -86,12 +96,13 @@ const StatsCard = ({ reports }) => {
       </div>
 
       <div className="status-breakdown glass-card">
-        <h3 className="breakdown-title">Status Breakdown</h3>
+        <h3 className="breakdown-title">Sync Status</h3>
         <div className="breakdown-list">
-          {statusBreakdown.map((status, index) => (
+          {syncBreakdown.map((status, index) => (
             <div key={index} className="breakdown-item">
               <div className="breakdown-info">
                 <div className={`breakdown-indicator breakdown-${status.color}`}></div>
+                <span className="breakdown-icon">{status.icon}</span>
                 <span className="breakdown-label">{status.label}</span>
               </div>
               <span className="breakdown-value">{status.value}</span>
@@ -101,13 +112,13 @@ const StatsCard = ({ reports }) => {
 
         <div className="progress-bar-container">
           <div className="progress-bar-label">
-            <span>Overall Progress</span>
-            <span className="text-primary">{stats.progressPercentage}%</span>
+            <span>Sync Progress</span>
+            <span className="text-primary">{stats.syncPercentage}%</span>
           </div>
           <div className="progress-bar">
             <div 
               className="progress-bar-fill" 
-              style={{ width: `${stats.progressPercentage}%` }}
+              style={{ width: `${stats.syncPercentage}%` }}
             ></div>
           </div>
         </div>

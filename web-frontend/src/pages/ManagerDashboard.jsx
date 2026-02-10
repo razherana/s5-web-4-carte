@@ -7,7 +7,7 @@ import StatsCard from '../components/StatsCard';
 import { reportService } from '../services/reportService';
 import { userService } from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
-import { FaSyncAlt, FaUserCog, FaUsers } from 'react-icons/fa';
+import { RefreshCw, Users, UserCog, CheckCircle2, PlusCircle, Pencil, Trash2, Eye } from 'lucide-react';
 import './Dashboard.css';
 
 const ManagerDashboard = () => {
@@ -33,7 +33,7 @@ const ManagerDashboard = () => {
       setReports(data);
       setError('');
     } catch (err) {
-      setError('Failed to load reports. Please try again.');
+      setError('Failed to load reports. Please try to refresh the page.');
       console.error('Error loading reports:', err);
     } finally {
       setLoading(false);
@@ -113,7 +113,7 @@ const ManagerDashboard = () => {
               </>
             ) : (
               <>
-                <span className="button-icon"><FaSyncAlt /></span>
+                <span className="button-icon"><RefreshCw size={16} /></span>
                 <span>Sync Reports</span>
               </>
             )}
@@ -130,7 +130,7 @@ const ManagerDashboard = () => {
               </>
             ) : (
               <>
-                <span className="button-icon"><FaUsers /></span>
+                <span className="button-icon"><Users size={16} /></span>
                 <span>Sync Users</span>
               </>
             )}
@@ -162,12 +162,12 @@ const ManagerDashboard = () => {
               <span className="metric-value">{stats.totalReports}</span>
             </div>
             <div className="hero-metric">
-              <span className="metric-label">In Progress</span>
-              <span className="metric-value">{stats.inProgressReports}</span>
+              <span className="metric-label">Synced</span>
+              <span className="metric-value">{stats.syncedReports}</span>
             </div>
             <div className="hero-metric">
-              <span className="metric-label">Completion</span>
-              <span className="metric-value">{stats.progressPercentage}%</span>
+              <span className="metric-label">Sync Rate</span>
+              <span className="metric-value">{stats.syncPercentage}%</span>
             </div>
           </div>
         </section>
@@ -183,14 +183,15 @@ const ManagerDashboard = () => {
                   className="glass-button"
                   onClick={() => navigate('/manager/users')}
                 >
-                  <FaUsers />
+                  <Users size={16} />
                   <span>Manage Users</span>
                 </button>
                 <Link className="glass-button" to="/profile">
-                  <FaUserCog />
+                  <UserCog size={16} />
                   <span>Profile Settings</span>
                 </Link>
                 <Link className="glass-button" to="/visitor/dashboard">
+                  <Eye size={16} />
                   <span>Visitor View</span>
                 </Link>
               </div>
@@ -203,16 +204,20 @@ const ManagerDashboard = () => {
             <h2 className="section-title">Reports Map</h2>
             <div className="map-legend">
               <div className="legend-item">
-                <div className="legend-dot legend-new"></div>
-                <span>New</span>
+                <div className="legend-dot legend-synced"></div>
+                <span>Synced</span>
               </div>
               <div className="legend-item">
-                <div className="legend-dot legend-in-progress"></div>
-                <span>In Progress</span>
+                <div className="legend-dot legend-created"></div>
+                <span>Created</span>
               </div>
               <div className="legend-item">
-                <div className="legend-dot legend-completed"></div>
-                <span>Completed</span>
+                <div className="legend-dot legend-updated"></div>
+                <span>Updated</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-dot legend-deleted"></div>
+                <span>Deleted</span>
               </div>
             </div>
             <div className="map-helper">

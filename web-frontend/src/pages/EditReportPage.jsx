@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import { reportService } from '../services/reportService';
+import { ArrowLeft, MapPin, CalendarDays, Building2, Ruler, Wallet } from 'lucide-react';
 import './ManagementPages.css';
 
 const EditReportPage = () => {
@@ -10,9 +11,8 @@ const EditReportPage = () => {
   const [formData, setFormData] = useState({
     surface: '',
     budget: '',
-    entreprise_id: '',
-    status: 'new',
-    description: '',
+    entreprise_name: '',
+    date_signalement: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,9 +24,8 @@ const EditReportPage = () => {
       setFormData({
         surface: report.surface || '',
         budget: report.budget || '',
-        entreprise_id: report.entreprise_id || '',
-        status: report.status || 'new',
-        description: report.description || '',
+        entreprise_name: report.entreprise?.name || '',
+        date_signalement: report.date_signalement || '',
       });
     }
   }, [location]);
@@ -72,7 +71,8 @@ const EditReportPage = () => {
           onClick={() => navigate('/manager/dashboard')}
           className="glass-button"
         >
-          Back to Dashboard
+          <ArrowLeft size={16} />
+          <span>Back to Dashboard</span>
         </button>
       }
     >
@@ -126,62 +126,63 @@ const EditReportPage = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="entreprise_id" className="form-label">Company ID</label>
+              <label htmlFor="entreprise_name" className="form-label">Company Name</label>
               <input
                 type="text"
-                id="entreprise_id"
-                name="entreprise_id"
-                value={formData.entreprise_id}
+                id="entreprise_name"
+                name="entreprise_name"
+                value={formData.entreprise_name}
                 onChange={handleChange}
                 className="glass-input"
-                placeholder="Enter company ID"
+                placeholder="Enter company name"
+                required
                 disabled={loading}
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="status" className="form-label">Status</label>
-              <select
-                id="status"
-                name="status"
-                value={formData.status}
+              <label htmlFor="date_signalement" className="form-label">Report Date</label>
+              <input
+                type="date"
+                id="date_signalement"
+                name="date_signalement"
+                value={formData.date_signalement}
                 onChange={handleChange}
                 className="glass-input"
-                required
                 disabled={loading}
-              >
-                <option value="new">New</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
-
-            <div className="form-group form-group-full">
-              <label htmlFor="description" className="form-label">Description</label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                className="glass-input"
-                placeholder="Enter description"
-                rows="4"
-                disabled={loading}
-              ></textarea>
+              />
             </div>
           </div>
 
           <div className="report-info">
             <div className="info-item">
-              <span className="info-label">Location:</span>
+              <span className="info-label"><MapPin size={14} /> Location</span>
               <span className="info-value">
-                {report?.latitude?.toFixed(6)}, {report?.longitude?.toFixed(6)}
+                {report?.lat?.toFixed(6)}, {report?.lng?.toFixed(6)}
               </span>
             </div>
             <div className="info-item">
-              <span className="info-label">Created:</span>
+              <span className="info-label"><CalendarDays size={14} /> Report Date</span>
               <span className="info-value">
-                {report?.created_at ? new Date(report.created_at).toLocaleString() : 'N/A'}
+                {report?.date_signalement || 'N/A'}
+              </span>
+            </div>
+            <div className="info-item">
+              <span className="info-label"><Building2 size={14} /> Company</span>
+              <span className="info-value">
+                {report?.entreprise?.name || 'N/A'}
+              </span>
+            </div>
+            <div className="info-item">
+              <span className="info-label"><Ruler size={14} /> Surface</span>
+              <span className="info-value">
+                {report?.surface ? `${report.surface} m²` : 'N/A'}
+              </span>
+            </div>
+            <div className="info-item">
+              <span className="info-label"><Wallet size={14} /> Budget</span>
+              <span className="info-value">
+                {report?.budget ? `${parseFloat(report.budget).toLocaleString()} Ar` : 'N/A'}
               </span>
             </div>
           </div>

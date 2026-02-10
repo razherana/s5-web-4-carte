@@ -1,16 +1,16 @@
 import { useMemo, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  FaBars,
-  FaChartLine,
-  FaMapMarkedAlt,
-  FaSignInAlt,
-  FaSignOutAlt,
-  FaUserCircle,
-  FaUserPlus,
-  FaUsers,
-  FaCog,
-} from 'react-icons/fa';
+  Menu,
+  BarChart3,
+  Map,
+  LogIn,
+  LogOut,
+  CircleUser,
+  UserPlus,
+  Users,
+  Settings,
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import './AppShell.css';
 
@@ -28,18 +28,18 @@ const AppShell = ({ title, subtitle, actions, children }) => {
   const navigation = useMemo(() => {
     if (isManager()) {
       return [
-        { to: '/manager/dashboard', label: 'Dashboard', icon: <FaChartLine /> },
-        { to: '/manager/users', label: 'Users', icon: <FaUsers /> },
-        { to: '/manager/users/create', label: 'Create User', icon: <FaUserPlus /> },
-        { to: '/profile', label: 'Profile', icon: <FaUserCircle /> },
-        { to: '/visitor/dashboard', label: 'Visitor Map', icon: <FaMapMarkedAlt /> },
+        { to: '/manager/dashboard', label: 'Dashboard', icon: <BarChart3 size={18} /> },
+        { to: '/manager/users', label: 'Users', icon: <Users size={18} /> },
+        { to: '/manager/users/create', label: 'Create User', icon: <UserPlus size={18} /> },
+        { to: '/profile', label: 'Profile', icon: <CircleUser size={18} /> },
+        { to: '/visitor/dashboard', label: 'Visitor Map', icon: <Map size={18} /> },
       ];
     }
 
     return [
-      { to: '/visitor/dashboard', label: 'Dashboard', icon: <FaMapMarkedAlt /> },
-      { to: '/profile', label: 'Profile', icon: <FaUserCircle />, requiresAuth: true },
-      { to: '/login', label: 'Sign In', icon: <FaSignInAlt />, requiresGuest: true },
+      { to: '/visitor/dashboard', label: 'Dashboard', icon: <Map size={18} /> },
+      { to: '/profile', label: 'Profile', icon: <CircleUser size={18} />, requiresAuth: true },
+      { to: '/login', label: 'Sign In', icon: <LogIn size={18} />, requiresGuest: true },
     ];
   }, [isManager]);
 
@@ -86,7 +86,7 @@ const AppShell = ({ title, subtitle, actions, children }) => {
           <div className="nav-section">
             <span className="nav-section-title">Preferences</span>
             <button className="sidebar-link ghost" type="button">
-              <span className="sidebar-icon"><FaCog /></span>
+              <span className="sidebar-icon"><Settings size={18} /></span>
               <span>Appearance</span>
             </button>
           </div>
@@ -95,7 +95,7 @@ const AppShell = ({ title, subtitle, actions, children }) => {
         <div className="sidebar-footer glass-card">
           <div className="user-info">
             <div className="user-avatar">
-              <FaUserCircle />
+              <CircleUser size={22} />
             </div>
             <div>
               <p className="user-name">{userEmail || 'Guest User'}</p>
@@ -104,7 +104,7 @@ const AppShell = ({ title, subtitle, actions, children }) => {
           </div>
           {isAuthenticated && (
             <button className="glass-button sidebar-logout" onClick={handleLogout}>
-              <FaSignOutAlt />
+              <LogOut size={16} />
               <span>Logout</span>
             </button>
           )}
@@ -119,7 +119,7 @@ const AppShell = ({ title, subtitle, actions, children }) => {
             aria-label="Toggle sidebar"
             type="button"
           >
-            <FaBars />
+            <Menu size={18} />
           </button>
 
           <div className="topbar-title">

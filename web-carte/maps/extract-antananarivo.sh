@@ -6,14 +6,17 @@ set -e
 SOURCE_PBF="./data/madagascar-260118.osm.pbf"
 TARGET_PBF="./data/antananarivo.osm.pbf"
 REGION_PBF="./data/region.osm.pbf"
+DOWNLOAD_URL="https://download.geofabrik.de/africa/madagascar-latest.osm.pbf"
 
 # BBOX Antananarivo (approx.) : minLon,minLat,maxLon,maxLat
 BBOX="47.35,-18.98,47.70,-18.75"
 
 if [ ! -f "$SOURCE_PBF" ]; then
   echo "❌ Fichier source introuvable : $SOURCE_PBF"
-  echo "📥 Téléchargez-le depuis : https://download.geofabrik.de/africa/madagascar-latest.osm.pbf"
-  exit 1
+  echo "📥 Téléchargement Antananarivo"
+
+  mkdir -p ./data
+  curl -L -o "$SOURCE_PBF" "$DOWNLOAD_URL"
 fi
 
 echo "🧩 Extraction Antananarivo depuis Madagascar..."

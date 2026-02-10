@@ -19,7 +19,8 @@ const ReportCreateModal = ({ isOpen, location, onClose, onCreated }) => {
     problem_type: 'nid_poule',
     date_signalement: '',
     surface: '',
-    budget: '',
+    niveau: '1',
+    prix_par_m2: '',
     entreprise_name: '',
   });
   const [submitting, setSubmitting] = useState(false);
@@ -37,7 +38,8 @@ const ReportCreateModal = ({ isOpen, location, onClose, onCreated }) => {
         problem_type: 'nid_poule',
         date_signalement: '',
         surface: '',
-        budget: '',
+        niveau: '1',
+        prix_par_m2: '',
         entreprise_name: '',
       });
       setError('');
@@ -79,13 +81,14 @@ const ReportCreateModal = ({ isOpen, location, onClose, onCreated }) => {
         problem_type: formData.problem_type,
         date_signalement: formData.date_signalement || null,
         surface: formData.surface ? Number(formData.surface) : null,
-        budget: formData.budget ? Number(formData.budget) : null,
+        niveau: formData.niveau ? Number(formData.niveau) : 1,
+        prix_par_m2: formData.prix_par_m2 ? Number(formData.prix_par_m2) : null,
         entreprise_name: formData.entreprise_name.trim(),
         latitude: location?.lat,
         longitude: location?.lng,
         lat: location?.lat,
         lng: location?.lng,
-        status: 'new',
+        status: 'pending',
         user_id: user.id,
         user_email: user.email,
       };
@@ -181,21 +184,55 @@ const ReportCreateModal = ({ isOpen, location, onClose, onCreated }) => {
               />
             </div>
             <div>
-              <label className="form-label" htmlFor="budget">
-                Budget (Ar)
+              <label className="form-label" htmlFor="niveau">
+                Niveau (1-10)
               </label>
               <input
-                id="budget"
-                name="budget"
+                id="niveau"
+                name="niveau"
+                type="number"
+                min="1"
+                max="10"
+                step="1"
+                value={formData.niveau}
+                onChange={handleChange}
+                className="glass-input"
+              />
+            </div>
+            <div>
+              <label className="form-label" htmlFor="prix_par_m2">
+                Prix par m² (Ar)
+              </label>
+              <input
+                id="prix_par_m2"
+                name="prix_par_m2"
                 type="number"
                 min="0"
-                step="1000"
-                value={formData.budget}
+                step="0.01"
+                value={formData.prix_par_m2}
                 onChange={handleChange}
                 className="glass-input"
               />
             </div>
           </div>
+
+          {/* Budget display */}
+          {formData.surface && formData.niveau && formData.prix_par_m2 && (
+            <div className="budget-display glass-card">
+              <div className="budget-display-label">Budget calculé</div>
+              <div className="budget-display-value">
+                {(
+                  Number(formData.surface) *
+                  Number(formData.niveau) *
+                  Number(formData.prix_par_m2)
+                ).toLocaleString()}
+                <span className="budget-display-unit">Ar</span>
+              </div>
+              <div className="budget-display-formula">
+                {Number(formData.prix_par_m2).toFixed(2)} × {formData.niveau} × {Number(formData.surface).toFixed(2)}
+              </div>
+            </div>
+          )}
 
           <label className="form-label" htmlFor="entreprise_name">
             Entreprise

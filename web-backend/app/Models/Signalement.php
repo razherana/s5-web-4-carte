@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Signalement extends Model
 {
@@ -22,8 +23,11 @@ class Signalement extends Model
         'lng',
         'date_signalement',
         'surface',
-        'budget',
+        'niveau',
+        'prix_par_m2',
         'entreprise_id',
+        'status',
+        'notes',
         'synced',
     ];
 
@@ -45,8 +49,24 @@ class Signalement extends Model
             'lat' => 'decimal:8',
             'lng' => 'decimal:8',
             'surface' => 'decimal:2',
-            'budget' => 'decimal:2',
+            'niveau' => 'integer',
+            'prix_par_m2' => 'decimal:2',
         ];
+    }
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var list<string>
+     */
+    protected $appends = ['budget'];
+
+    /**
+     * Get the computed budget: prix_par_m2 * niveau * surface.
+     */
+    public function getBudgetAttribute(): float
+    {
+        return round((float) $this->prix_par_m2 * (int) $this->niveau * (float) $this->surface, 2);
     }
 
     /**
@@ -63,5 +83,13 @@ class Signalement extends Model
     public function entreprise(): BelongsTo
     {
         return $this->belongsTo(Entreprise::class);
+    }
+
+    /**
+     * Get the status history for this signalement.
+     */
+    public function statusHistory(): HasMany
+    {
+        return $this->hasMany(SignalementStatusHistory::class)->orderBy('changed_at', 'asc');
     }
 }

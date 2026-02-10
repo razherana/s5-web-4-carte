@@ -10,6 +10,8 @@ import {
   UserPlus,
   Users,
   Settings,
+  FileText,
+  ShieldOff,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import './AppShell.css';
@@ -29,7 +31,9 @@ const AppShell = ({ title, subtitle, actions, children }) => {
     if (isManager()) {
       return [
         { to: '/manager/dashboard', label: 'Dashboard', icon: <BarChart3 size={18} /> },
+        { to: '/manager/reports', label: 'Reports', icon: <FileText size={18} /> },
         { to: '/manager/users', label: 'Users', icon: <Users size={18} /> },
+        { to: '/manager/users/blocked', label: 'Blocked Users', icon: <ShieldOff size={18} /> },
         { to: '/manager/users/create', label: 'Create User', icon: <UserPlus size={18} /> },
         { to: '/profile', label: 'Profile', icon: <CircleUser size={18} /> },
         { to: '/visitor/dashboard', label: 'Visitor Map', icon: <Map size={18} /> },

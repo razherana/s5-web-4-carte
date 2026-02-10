@@ -5,7 +5,9 @@ const config: CapacitorConfig = {
   appName: 'Travaux Routiers',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    iosScheme: 'https',
+    // cleartext: true
   },
   plugins: {
     // Pour la géolocalisation

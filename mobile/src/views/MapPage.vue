@@ -7,13 +7,23 @@
         </ion-buttons>
         <ion-title>Carte intelligente</ion-title>
         <ion-buttons slot="end">
-          <ion-button class="icon-chip" @click="toggleShowMyReports" v-if="isLoggedIn">
-            <ion-icon :icon="showMyReportsOnly ? mapOutline : personOutline"></ion-icon>
+          <ion-button
+            class="icon-chip"
+            @click="toggleShowMyReports"
+            v-if="isLoggedIn"
+          >
+            <ion-icon
+              :icon="showMyReportsOnly ? mapOutline : personOutline"
+            ></ion-icon>
           </ion-button>
           <ion-button class="icon-chip" @click="toggleStats">
             <ion-icon :icon="statsChartOutline"></ion-icon>
           </ion-button>
-          <ion-button class="icon-chip" @click="goToMyReports" v-if="isLoggedIn">
+          <ion-button
+            class="icon-chip"
+            @click="goToMyReports"
+            v-if="isLoggedIn"
+          >
             <ion-icon :icon="listOutline"></ion-icon>
           </ion-button>
           <ion-button class="icon-chip" @click="handleLogout" v-if="isLoggedIn">
@@ -21,6 +31,9 @@
           </ion-button>
           <ion-button class="icon-chip" @click="goToLogin" v-else>
             <ion-icon :icon="logInOutline"></ion-icon>
+          </ion-button>
+          <ion-button class="icon-chip" @click="testNotification">
+            <ion-icon :icon="notificationsOutline"></ion-icon>
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
@@ -32,15 +45,20 @@
           <div>
             <h1>Signalez, suivez, améliorez.</h1>
             <p class="text-secondary">
-              Repérez les incidents routiers et suivez l'avancement des interventions en temps réel.
+              Repérez les incidents routiers et suivez l'avancement des
+              interventions en temps réel.
             </p>
           </div>
           <div class="hero-actions">
             <div class="btn-primary" v-if="!isLoggedIn">
-              <ion-button expand="block" @click="goToLogin">Se connecter</ion-button>
+              <ion-button expand="block" @click="goToLogin"
+                >Se connecter</ion-button
+              >
             </div>
             <div class="btn-secondary" v-else>
-              <ion-button expand="block" @click="goToMyReports">Voir mes signalements</ion-button>
+              <ion-button expand="block" @click="goToMyReports"
+                >Voir mes signalements</ion-button
+              >
             </div>
           </div>
         </section>
@@ -61,17 +79,30 @@
               </p>
             </div>
             <div class="map-badges">
-              <span class="badge">{{ filteredReports.length }} 
-                {{ showMyReportsOnly ? 'mes signalements' : 'signalements' }}
+              <span class="badge"
+                >{{ filteredReports.length }}
+                {{ showMyReportsOnly ? "mes signalements" : "signalements" }}
               </span>
               <span class="badge">Antananarivo</span>
-              <span 
-                class="badge filter-badge" 
+              <span
+                class="badge filter-badge"
                 v-if="showMyReportsOnly"
                 @click="toggleShowMyReports"
-                style="cursor: pointer; background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.08)); color: #f59e0b; border-color: rgba(245, 158, 11, 0.2);"
+                style="
+                  cursor: pointer;
+                  background: linear-gradient(
+                    135deg,
+                    rgba(245, 158, 11, 0.12),
+                    rgba(245, 158, 11, 0.08)
+                  );
+                  color: #f59e0b;
+                  border-color: rgba(245, 158, 11, 0.2);
+                "
               >
-                <ion-icon :icon="closeOutline" style="margin-right: 4px; font-size: 12px;"></ion-icon>
+                <ion-icon
+                  :icon="closeOutline"
+                  style="margin-right: 4px; font-size: 12px"
+                ></ion-icon>
                 Filtré à mes signalements
               </span>
             </div>
@@ -88,8 +119,21 @@
             <div class="map-overlay">
               <span class="chip">Cliquez pour signaler</span>
               <span class="chip" v-if="!isLoggedIn">Connexion requise</span>
-              <span class="chip" v-if="showMyReportsOnly" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.08));">
-                <ion-icon :icon="personOutline" style="margin-right: 4px; font-size: 12px;"></ion-icon>
+              <span
+                class="chip"
+                v-if="showMyReportsOnly"
+                style="
+                  background: linear-gradient(
+                    135deg,
+                    rgba(245, 158, 11, 0.15),
+                    rgba(245, 158, 11, 0.08)
+                  );
+                "
+              >
+                <ion-icon
+                  :icon="personOutline"
+                  style="margin-right: 4px; font-size: 12px"
+                ></ion-icon>
                 Mes signalements
               </span>
             </div>
@@ -112,8 +156,8 @@
 </template>
 
 <script>
-import { IonMenuButton } from '@ionic/vue';
-
+import { IonMenuButton } from "@ionic/vue";
+import { notificationsOutline } from "ionicons/icons";
 import {
   IonPage,
   IonHeader,
@@ -125,7 +169,7 @@ import {
   IonIcon,
   IonSpinner,
   alertController,
-} from '@ionic/vue';
+} from "@ionic/vue";
 import {
   statsChartOutline,
   listOutline,
@@ -133,19 +177,19 @@ import {
   logInOutline,
   mapOutline,
   personOutline,
-  closeOutline
-} from 'ionicons/icons';
-import { ref, computed, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
-import { onIonViewDidEnter } from '@ionic/vue';
-import MapComponent from '@/components/MapComponent.vue';
-import ReportModal from '@/components/ReportModal.vue';
-import StatsCard from '@/components/StatsCard.vue';
-import reportService from '@/services/reportService';
-import authService from '@/services/authService';
+  closeOutline,
+} from "ionicons/icons";
+import { ref, computed, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
+import { onIonViewDidEnter } from "@ionic/vue";
+import MapComponent from "@/components/MapComponent.vue";
+import ReportModal from "@/components/ReportModal.vue";
+import StatsCard from "@/components/StatsCard.vue";
+import reportService from "@/services/reportService";
+import authService from "@/services/authService";
 
 export default {
-  name: 'MapPage',
+  name: "MapPage",
   components: {
     IonPage,
     IonHeader,
@@ -176,18 +220,18 @@ export default {
     const currentUser = ref(authService.getCurrentUser());
 
     const isLoggedIn = computed(() => currentUser.value !== null);
-    
+
     const filteredReports = computed(() => {
-      console.log('=== FILTRAGE DES SIGNALEMENTS ===');
-      console.log('Tous les signalements:', reports.value.length);
-      console.log('Mode filtre actif:', showMyReportsOnly.value);
-      console.log('Utilisateur connecté:', currentUser.value);
-      
+      console.log("=== FILTRAGE DES SIGNALEMENTS ===");
+      console.log("Tous les signalements:", reports.value.length);
+      console.log("Mode filtre actif:", showMyReportsOnly.value);
+      console.log("Utilisateur connecté:", currentUser.value);
+
       if (showMyReportsOnly.value && currentUser.value) {
-        const filtered = reports.value.filter(report => {
+        const filtered = reports.value.filter((report) => {
           const matchId = report.userId === currentUser.value.id;
           const matchEmail = report.userEmail === currentUser.value.email;
-          
+
           console.log(`Signalement ${report.id}:`, {
             reportUserId: report.userId,
             reportUserEmail: report.userEmail,
@@ -195,38 +239,106 @@ export default {
             currentUserEmail: currentUser.value.email,
             matchId,
             matchEmail,
-            result: matchId || matchEmail
+            result: matchId || matchEmail,
           });
-          
+
           return matchId || matchEmail;
         });
-        
-        console.log('Signalements filtrés:', filtered.length);
+
+        console.log("Signalements filtrés:", filtered.length);
         return filtered;
       }
-      
-      console.log('Retour de tous les signalements (pas de filtre)');
+
+      console.log("Retour de tous les signalements (pas de filtre)");
       return reports.value;
     });
-    
-    const statistics = computed(() => reportService.calculateStats(reports.value));
+
+    const statistics = computed(() =>
+      reportService.calculateStats(reports.value)
+    );
+
+    const testNotification = async () => {
+      const alert = await alertController.create({
+        header: "Test Notifications",
+        message: "Que voulez-vous tester ?",
+        buttons: [
+          {
+            text: "Notification locale",
+            handler: async () => {
+              const result = await notificationService.testNotification();
+              if (!result.success) {
+                const errorAlert = await alertController.create({
+                  header: "Erreur",
+                  message: result.error,
+                  buttons: ["OK"],
+                });
+                await errorAlert.present();
+              }
+            },
+          },
+          {
+            text: "Statut complet",
+            handler: async () => {
+              await checkNotificationStatus();
+            },
+          },
+          {
+            text: "Permission",
+            handler: async () => {
+              const result =
+                await notificationService.checkAndRequestPermission();
+              const statusAlert = await alertController.create({
+                header: "Permission",
+                message: `État: ${result.granted ? "Accordée" : "Refusée"}`,
+                buttons: ["OK"],
+              });
+              await statusAlert.present();
+            },
+          },
+          { text: "Annuler", role: "cancel" },
+        ],
+      });
+      await alert.present();
+    };
+
+    const checkNotificationStatus = async () => {
+      const status = notificationService.getNotificationStatus();
+
+      let message = `
+    <div style="text-align: left;">
+      <strong>📊 État des notifications :</strong><br><br>
+      • Navigateur supporté : ${status.browserSupported ? "✅" : "❌"}<br>
+      • Permission : ${status.permission}<br>
+      • Token FCM : ${status.token}<br>
+      • Service initialisé : ${status.isInitialized ? "✅" : "❌"}<br>
+      • Surveillance active : ${status.listenersCount} utilisateur(s)
+    </div>
+  `;
+
+      const alert = await alertController.create({
+        header: "Statut Notifications",
+        message: message,
+        buttons: ["OK"],
+      });
+      await alert.present();
+    };
 
     const loadReports = async () => {
-      console.log('🔄 Chargement des signalements...');
+      console.log("🔄 Chargement des signalements...");
       loading.value = true;
 
       const result = await reportService.getAllReports();
 
       if (result.success) {
         reports.value = result.data;
-        console.log('✅ Signalements chargés:', reports.value.length);
-        console.log('Premier signalement:', reports.value[0]);
+        console.log("Signalements chargés:", reports.value.length);
+        console.log("Premier signalement:", reports.value[0]);
       } else {
-        console.error('❌ Erreur lors du chargement des signalements');
+        console.error("Erreur lors du chargement des signalements");
         const alert = await alertController.create({
-          header: 'Erreur',
-          message: 'Impossible de charger les signalements',
-          buttons: ['OK'],
+          header: "Erreur",
+          message: "Impossible de charger les signalements",
+          buttons: ["OK"],
         });
         await alert.present();
       }
@@ -237,7 +349,7 @@ export default {
     const updateUserState = () => {
       // Mettre à jour l'état de l'utilisateur à chaque fois que la page est affichée
       currentUser.value = authService.getCurrentUser();
-      console.log('👤 État utilisateur mis à jour:', currentUser.value);
+      console.log("👤 État utilisateur mis à jour:", currentUser.value);
     };
 
     const toggleStats = () => {
@@ -250,8 +362,8 @@ export default {
         return;
       }
       showMyReportsOnly.value = !showMyReportsOnly.value;
-      console.log('🔀 Basculement du filtre:', showMyReportsOnly.value);
-      
+      console.log("🔀 Basculement du filtre:", showMyReportsOnly.value);
+
       // Forcer la mise à jour du composant carte
       mapKey.value++;
     };
@@ -260,16 +372,16 @@ export default {
       if (!isLoggedIn.value) {
         alertController
           .create({
-            header: 'Connexion requise',
-            message: 'Vous devez vous connecter pour créer un signalement',
+            header: "Connexion requise",
+            message: "Vous devez vous connecter pour créer un signalement",
             buttons: [
-              { text: 'Annuler', role: 'cancel' },
+              { text: "Annuler", role: "cancel" },
               {
-                text: 'Se connecter',
-                handler: () => router.push('/login'),
+                text: "Se connecter",
+                handler: () => router.push("/login"),
               },
             ],
-            cssClass: 'modern-alert',
+            cssClass: "modern-alert",
           })
           .then((alert) => alert.present());
         return;
@@ -301,48 +413,48 @@ export default {
     };
 
     const handleMarkerClick = (report) => {
-      console.log('Marker clicked:', report);
+      console.log("Marker clicked:", report);
     };
 
-    const goToMyReports = () => router.push('/my-reports');
-    const goToLogin = () => router.push('/login');
+    const goToMyReports = () => router.push("/my-reports");
+    const goToLogin = () => router.push("/login");
 
     const handleLogout = async () => {
       const alert = await alertController.create({
-        header: 'Déconnexion',
-        message: 'Voulez-vous vraiment vous déconnecter ?',
+        header: "Déconnexion",
+        message: "Voulez-vous vraiment vous déconnecter ?",
         buttons: [
-          { text: 'Annuler', role: 'cancel' },
+          { text: "Annuler", role: "cancel" },
           {
-            text: 'Déconnexion',
+            text: "Déconnexion",
             handler: async () => {
               await authService.logout();
               currentUser.value = null;
               showMyReportsOnly.value = false;
               mapKey.value++;
-              router.push('/login');
+              router.push("/login");
             },
           },
         ],
-        cssClass: 'modern-alert',
+        cssClass: "modern-alert",
       });
       await alert.present();
     };
 
     // Surveiller les changements de filteredReports
     watch(filteredReports, (newVal) => {
-      console.log('📊 Mise à jour des signalements filtrés:', newVal.length);
+      console.log("📊 Mise à jour des signalements filtrés:", newVal.length);
     });
 
     // Hook Ionic appelé à chaque fois que la vue est affichée
     onIonViewDidEnter(() => {
-      console.log('📱 Vue entrée (onIonViewDidEnter)');
+      console.log("📱 Vue entrée (onIonViewDidEnter)");
       updateUserState();
       loadReports();
     });
 
     onMounted(() => {
-      console.log('🎬 Composant monté (onMounted)');
+      console.log("🎬 Composant monté (onMounted)");
       updateUserState();
       loadReports();
     });
@@ -374,7 +486,7 @@ export default {
       logInOutline,
       mapOutline,
       personOutline,
-      closeOutline
+      closeOutline,
     };
   },
 };

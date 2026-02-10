@@ -21,13 +21,13 @@
           <div class="hero-stats">
             <div>
               <ion-icon :icon="shieldCheckmarkOutline"></ion-icon>
-              <strong>Fiable</strong>
-              <span>Signalements vérifiés</span>
+              <strong>Sans mot de passe</strong>
+              <span>Connectez-vous avec votre email</span>
             </div>
             <div>
               <ion-icon :icon="sparklesOutline"></ion-icon>
               <strong>Rapide</strong>
-              <span>Mises à jour en temps réel</span>
+              <span>Accès instantané</span>
             </div>
           </div>
         </div>
@@ -35,7 +35,7 @@
         <div class="auth-card glass card slide-up">
           <div class="auth-header">
             <h2>Connexion</h2>
-            <p class="text-secondary">Reprenez vos signalements en quelques secondes.</p>
+            <p class="text-secondary">Entrez votre email pour vous connecter</p>
           </div>
 
           <form @submit.prevent="handleLogin" class="auth-form">
@@ -43,30 +43,38 @@
               <label>Adresse email</label>
               <div class="input-shell">
                 <ion-icon :icon="mailOutline"></ion-icon>
-                <input v-model="email" type="email" placeholder="vous@email.com" required />
-              </div>
-            </div>
-
-            <div class="input-field">
-              <label>Mot de passe</label>
-              <div class="input-shell">
-                <ion-icon :icon="lockClosedOutline"></ion-icon>
-                <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="••••••••" required />
-                <button type="button" class="icon-btn" @click="showPassword = !showPassword">
-                  <ion-icon :icon="showPassword ? eyeOffOutline : eyeOutline"></ion-icon>
-                </button>
+                <input 
+                  v-model="email" 
+                  type="email" 
+                  placeholder="vous@email.com" 
+                  required 
+                  :disabled="loading"
+                />
               </div>
             </div>
 
             <div class="auth-actions">
-              <!-- <button type="button" class="link-btn">Mot de passe oublié ?</button> -->
-              <button type="button" class="link-btn ghost" @click="continueAsVisitor">Continuer en visiteur</button>
+              <button 
+                type="button" 
+                class="link-btn ghost" 
+                @click="continueAsVisitor"
+                :disabled="loading"
+              >
+                Continuer en visiteur
+              </button>
             </div>
 
             <div class="btn-primary">
-              <ion-button expand="block" type="submit" :disabled="loading" size="large">
-                <ion-spinner v-if="loading" name="crescent"></ion-spinner>
-                <span v-else>Se connecter</span>
+              <ion-button 
+                expand="block" 
+                type="submit" 
+                :disabled="loading || !email" 
+                size="large"
+              >
+                <ion-spinner v-if="loading" name="crescent" slot="start"></ion-spinner>
+                <ion-icon :icon="logInOutline" slot="start" v-else></ion-icon>
+                <span v-if="!loading">Se connecter</span>
+                <span v-else>Connexion...</span>
               </ion-button>
             </div>
           </form>
@@ -74,7 +82,13 @@
 
         <!-- <div class="auth-footer">
           <span>Pas encore de compte ?</span>
-          <button class="link-btn primary" @click="goToRegister">Créer un compte</button>
+          <button 
+            class="link-btn primary" 
+            @click="goToRegister"
+            :disabled="loading"
+          >
+            Créer un compte
+          </button>
         </div> -->
       </div>
     </ion-content>
@@ -91,13 +105,11 @@ import {
   alertController
 } from '@ionic/vue';
 import { 
-  mailOutline, 
-  lockClosedOutline, 
-  eyeOutline, 
-  eyeOffOutline,
+  mailOutline,
   navigateCircleOutline,
   shieldCheckmarkOutline,
-  sparklesOutline
+  sparklesOutline,
+  logInOutline
 } from 'ionicons/icons';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -115,15 +127,13 @@ export default {
   setup() {
     const router = useRouter();
     const email = ref('');
-    const password = ref('');
     const loading = ref(false);
-    const showPassword = ref(false);
 
     const handleLogin = async () => {
-      if (!email.value || !password.value) {
+      if (!email.value) {
         const alert = await alertController.create({
-          header: 'Champs requis',
-          message: 'Veuillez remplir tous les champs',
+          header: 'Email requis',
+          message: 'Veuillez entrer votre adresse email',
           buttons: ['OK'],
           cssClass: 'modern-alert'
         });
@@ -133,29 +143,29 @@ export default {
 
       loading.value = true;
 
-      // Try Firebase first
-      const result = await authService.loginWithFirebase(email.value, password.value);
-
-      if (result.success) {
-        router.push('/my-reports');
-      } else {
-        // Fallback to API
-        const apiResult = await authService.loginWithAPI(email.value, password.value);
-        
-        if (apiResult.success) {
-          router.push('/map');
-        } else {
-          const alert = await alertController.create({
-            header: 'Échec de connexion',
-            message: result.error || 'Email ou mot de passe incorrect',
-            buttons: ['OK'],
-            cssClass: 'modern-alert'
-          });
-          await alert.present();
-        }
-      }
+      // Utiliser la méthode login simplifiée (juste email)
+      const result = await authService.login(email.value);
 
       loading.value = false;
+
+      if (result.success) {
+        console.log('✅ Utilisateur connecté:', result.user);
+        
+        // Redirection basée sur le rôle
+        if (result.user?.role === 'manager') {
+          router.push('/dashboard');
+        } else {
+          router.push('/map');
+        }
+      } else {
+        const alert = await alertController.create({
+          header: 'Échec de connexion',
+          message: result.error || 'Email non reconnu',
+          buttons: ['OK'],
+          cssClass: 'modern-alert'
+        });
+        await alert.present();
+      }
     };
 
     const goToRegister = () => {
@@ -168,25 +178,52 @@ export default {
 
     return {
       email,
-      password,
       loading,
-      showPassword,
       handleLogin,
       goToRegister,
       continueAsVisitor,
       mailOutline,
-      lockClosedOutline,
-      eyeOutline,
-      eyeOffOutline,
       navigateCircleOutline,
       shieldCheckmarkOutline,
-      sparklesOutline
+      sparklesOutline,
+      logInOutline
     };
   }
 };
 </script>
 
 <style scoped>
+/* Votre CSS existant reste le même */
+.auth-shell {
+  position: relative;
+  z-index: 1;
+  padding: clamp(16px, 4vw, 32px);
+  display: grid;
+  gap: var(--app-space-lg);
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.auth-hero {
+  display: grid;
+  gap: var(--app-space-md);
+}
+
+.brand {
+  display: flex;
+  gap: var(--app-space-sm);
+  align-items: center;
+}
+
+.brand-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--app-radius-lg);
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.5);
+}
+
 @keyframes float {
   0%, 100% {
     transform: translateY(0);

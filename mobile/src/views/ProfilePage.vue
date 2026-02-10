@@ -229,10 +229,10 @@ export default {
           // Commencer à écouter les changements
           notificationService.watchUserReports(user.value.uid || user.value.id);
           
-          showToast('✅ Notifications activées', 'success');
+          showToast('Notifications activées', 'success');
         } else {
           notificationsEnabled.value = false;
-          showToast('❌ Impossible d\'activer les notifications', 'danger');
+          showToast('Impossible d\'activer les notifications', 'danger');
         }
       } else {
         // Désactiver les notifications
@@ -272,10 +272,10 @@ export default {
               const result = await authService.logout();
               
               if (result.success) {
-                showToast('✅ Déconnexion réussie', 'success');
+                showToast('Déconnexion réussie', 'success');
                 router.push('/login');
               } else {
-                showToast('❌ Erreur lors de la déconnexion', 'danger');
+                showToast('Erreur lors de la déconnexion', 'danger');
               }
             },
           },

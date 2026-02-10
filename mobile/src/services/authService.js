@@ -1,329 +1,175 @@
 // src/services/authService.js
-import axios from 'axios';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
-} from 'firebase/auth';
-import { auth } from './firebaseConfig';
+import axios from "axios";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { db } from "./firebaseConfig";
 
-const API_URL = 'http://localhost:3000/api'; // URL de votre API REST
+const API_URL = "http://localhost:3000/api";
 
 class AuthService {
   constructor() {
     this.currentUser = null;
-    this.initAuthListener();
   }
 
-  // Initialiser l'écouteur d'authentification Firebase
-  initAuthListener() {
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        this.currentUser = {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName || user.email,
-          photoURL: user.photoURL || null
-        };
-        // Sauvegarder dans localStorage
-        localStorage.setItem('user', JSON.stringify(this.currentUser));
-        localStorage.setItem('authProvider', 'firebase');
-      } else {
-        // Vérifier si l'utilisateur est connecté via l'API
-        const apiUser = localStorage.getItem('user');
-        const authProvider = localStorage.getItem('authProvider');
-        
-        if (!apiUser || authProvider === 'firebase') {
-          this.currentUser = null;
-          localStorage.removeItem('user');
-          localStorage.removeItem('authProvider');
-          localStorage.removeItem('token');
-        }
-      }
-    });
-  }
-
-  // Connexion avec Firebase (en ligne)
-  async loginWithFirebase(email, password) {
+  // Trouver un utilisateur par email dans Firestore
+  async findUserByEmail(email) {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      this.currentUser = {
-        uid: user.uid,
-        id: user.uid,
-        email: user.email,
-        displayName: user.displayName || user.email,
-        photoURL: user.photoURL || null
-      };
-      
-      localStorage.setItem('user', JSON.stringify(this.currentUser));
-      localStorage.setItem('authProvider', 'firebase');
-      
-      return {
-        success: true,
-        user: this.currentUser
-      };
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("email", "==", email));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const userDoc = querySnapshot.docs[0];
+        return {
+          id: userDoc.id,
+          ...userDoc.data(),
+        };
+      }
+      return null;
     } catch (error) {
-      console.error('Erreur Firebase login:', error);
-      return {
-        success: false,
-        error: this.getErrorMessage(error.code)
-      };
+      console.error("Erreur lors de la recherche de l'utilisateur:", error);
+      return null;
     }
   }
 
-  // Connexion avec l'API REST (mode hors ligne ou fallback)
-  async loginWithAPI(email, password) {
+  // Connexion SIMPLE avec Firestore (juste par email)
+  async loginWithFirestore(email) {
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, {
-        email,
-        password
-      }, {
-        timeout: 5000 // 5 secondes timeout
-      });
-      
-      if (response.data.token) {
-        this.currentUser = {
-          uid: response.data.user?.id || response.data.userId,
-          id: response.data.user?.id || response.data.userId,
-          email: response.data.user?.email || email,
-          displayName: response.data.user?.name || email,
-          photoURL: response.data.user?.photoURL || null
+      // 1. Trouver l'utilisateur par email
+      const user = await this.findUserByEmail(email);
+
+      if (!user) {
+        return {
+          success: false,
+          error: "Aucun compte trouvé avec cette adresse email",
         };
-        
-        localStorage.setItem('user', JSON.stringify(this.currentUser));
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('authProvider', 'api');
       }
-      
+
+      // 2. Vérifier si le compte est verrouillé
+      if (user.locked_until) {
+        const lockTime = new Date(user.locked_until);
+        if (lockTime > new Date()) {
+          return {
+            success: false,
+            error: `Compte temporairement verrouillé. Réessayez après ${lockTime.toLocaleTimeString()}`,
+          };
+        }
+      }
+
+      // 3. Authentification réussie (pas de vérification de mot de passe)
+      this.currentUser = {
+        uid: user.id,
+        id: user.id || user.firebase_uid || user.id,
+        email: user.email,
+        role: user.role || "user",
+        login_attempts: user.login_attempts || 0,
+        locked_until: user.locked_until || null,
+        name: user.name || "",
+        firstName: user.firstName || "",
+      };
+
+      localStorage.setItem("user", JSON.stringify(this.currentUser));
+      localStorage.setItem("authProvider", "firestore");
+
+      // Réinitialiser les tentatives de connexion en cas de succès
+      if (user.login_attempts > 0) {
+        await this.resetLoginAttempts(user.id);
+      }
+
       return {
         success: true,
         user: this.currentUser,
-        token: response.data.token
       };
     } catch (error) {
-      const isNet = this.isNetworkError(error);
-      if (isNet) {
-        console.warn("API indisponible (login):", error.message);
-      } else {
-        console.error("Erreur API login:", error);
-      }
+      console.error("Erreur Firestore login:", error);
       return {
         success: false,
-        error: isNet
-          ? "API indisponible. Lancez le serveur API ou vérifiez l'URL."
-          : error.response?.data?.message || "Erreur de connexion à l'API"
+        error: "Erreur lors de la connexion",
       };
     }
   }
 
-  // Connexion intelligente (essaie Firebase d'abord, puis API en fallback)
-  async login(email, password) {
-    // Vérifier la validation
-    if (!email || !password) {
-      return {
-        success: false,
-        error: 'Email et mot de passe requis'
-      };
-    }
-
-    // Essayer d'abord Firebase
-    const firebaseResult = await this.loginWithFirebase(email, password);
-    
-    if (firebaseResult.success) {
-      console.log('✅ Connexion réussie avec Firebase');
-      return firebaseResult;
-    }
-    
-    console.log('⚠️ Firebase login échoué, tentative avec API...');
-
-    if (!this.isApiEnabled()) {
-      return firebaseResult;
-    }
-
-    const apiResult = await this.loginWithAPI(email, password);
-    
-    if (apiResult.success) {
-      console.log('✅ Connexion réussie avec API');
-      return apiResult;
-    }
-    
-    console.log('❌ Échec de connexion avec Firebase et API');
-    
-    // Retourner l'erreur Firebase (plus détaillée)
-    return firebaseResult;
-  }
-
-  // Inscription avec Firebase
-  async registerWithFirebase(email, password, userData = {}) {
+  // Inscription avec Firestore (sans mot de passe)
+  async registerWithFirestore(email, userData = {}) {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      this.currentUser = {
-        uid: user.uid,
-        id: user.uid,
-        email: user.email,
-        displayName: userData.name || user.email,
-        photoURL: user.photoURL || null
+      // Vérifier si l'utilisateur existe déjà
+      const existingUser = await this.findUserByEmail(email);
+      if (existingUser) {
+        return {
+          success: false,
+          error: "Cette adresse email est déjà utilisée",
+        };
+      }
+
+      // Créer un ID unique
+      const userId = this.generateUserId();
+
+      // Créer le document utilisateur dans Firestore
+      const userDoc = {
+        id: userId,
+        email: email,
+        locked_until: null,
+        login_attempts: 0,
+        role: "user",
+        createdAt: new Date().toISOString(),
+        ...userData, // Inclure name, firstName, etc.
       };
-      
-      localStorage.setItem('user', JSON.stringify(this.currentUser));
-      localStorage.setItem('authProvider', 'firebase');
-      
+
+      // Ajouter l'utilisateur à la collection users
+      await setDoc(doc(db, "users", userId), userDoc);
+
+      this.currentUser = {
+        uid: userId,
+        id: userId,
+        email: email,
+        role: "user",
+        login_attempts: 0,
+        locked_until: null,
+        ...userData,
+      };
+
+      localStorage.setItem("user", JSON.stringify(this.currentUser));
+      localStorage.setItem("authProvider", "firestore");
+
       return {
         success: true,
-        user: this.currentUser
+        user: this.currentUser,
       };
     } catch (error) {
-      console.error('Erreur Firebase register:', error);
+      console.error("Erreur Firestore register:", error);
       return {
         success: false,
-        error: this.getErrorMessage(error.code)
+        error: "Erreur lors de l'inscription",
       };
     }
   }
 
-  // Inscription avec l'API
-  async registerWithAPI(email, password, userData = {}) {
+  // Générer un ID utilisateur
+  generateUserId() {
+    return "user_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+  }
+
+  // Réinitialiser les tentatives de connexion
+  async resetLoginAttempts(userId) {
     try {
-      const response = await axios.post(`${API_URL}/auth/register`, {
-        email,
-        password,
-        name: userData.name || email,
-        ...userData
-      }, {
-        timeout: 5000
+      const userRef = doc(db, "users", userId);
+      await updateDoc(userRef, {
+        login_attempts: 0,
+        locked_until: null,
       });
-      
-      if (response.data.token) {
-        this.currentUser = {
-          uid: response.data.user?.id || response.data.userId,
-          id: response.data.user?.id || response.data.userId,
-          email: response.data.user?.email || email,
-          displayName: response.data.user?.name || email,
-          photoURL: response.data.user?.photoURL || null
-        };
-        
-        localStorage.setItem('user', JSON.stringify(this.currentUser));
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('authProvider', 'api');
-        
-        return {
-          success: true,
-          user: this.currentUser,
-          token: response.data.token
-        };
-      }
-      
-      return {
-        success: false,
-        error: 'Réponse invalide du serveur'
-      };
     } catch (error) {
-      const isNet = this.isNetworkError(error);
-      if (isNet) {
-        console.warn("API indisponible (register):", error.message);
-      } else {
-        console.error("Erreur API register:", error);
-      }
-      return {
-        success: false,
-        error: isNet
-          ? "API indisponible. Lancez le serveur API ou vérifiez l'URL."
-          : error.response?.data?.message || "Erreur lors de l'inscription"
-      };
-    }
-  }
-
-  // Inscription intelligente (Firebase + sync avec API)
-  async register(email, password, userData = {}) {
-    // Vérifier la validation
-    if (!email || !password) {
-      return {
-        success: false,
-        error: 'Email et mot de passe requis'
-      };
-    }
-
-    if (password.length < 6) {
-      return {
-        success: false,
-        error: 'Le mot de passe doit contenir au moins 6 caractères'
-      };
-    }
-
-    // Essayer d'abord Firebase
-    const firebaseResult = await this.registerWithFirebase(email, password, userData);
-    
-    if (firebaseResult.success) {
-      console.log('✅ Inscription réussie avec Firebase');
-      
-      if (this.isApiEnabled()) {
-        try {
-          await this.registerWithAPI(email, password, userData);
-          console.log('✅ Utilisateur synchronisé avec l\'API');
-        } catch (error) {
-          console.warn('⚠️ Sync API échouée (non bloquant):', error);
-        }
-      }
-
-      return firebaseResult;
-    }
-    
-    console.log('⚠️ Firebase register échoué, tentative avec API...');
-
-    if (!this.isApiEnabled()) {
-      return firebaseResult;
-    }
-
-    const apiResult = await this.registerWithAPI(email, password, userData);
-
-    if (apiResult.success) {
-      console.log('✅ Inscription réussie avec API');
-      return apiResult;
-    }
-    
-    console.log('❌ Échec d\'inscription avec Firebase et API');
-    return firebaseResult;
-  }
-
-  // Déconnexion
-  async logout() {
-    try {
-      const authProvider = localStorage.getItem('authProvider');
-      
-      // Déconnecter de Firebase si c'était le provider
-      if (authProvider === 'firebase') {
-        await signOut(auth);
-      }
-      
-      // Nettoyer localStorage
-      this.currentUser = null;
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
-      localStorage.removeItem('authProvider');
-      
-      console.log('✅ Déconnexion réussie');
-      
-      return { 
-        success: true 
-      };
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-      
-      // Forcer le nettoyage même en cas d'erreur
-      this.currentUser = null;
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
-      localStorage.removeItem('authProvider');
-      
-      return {
-        success: false,
-        error: error.message
-      };
+      console.error(
+        "Erreur lors de la réinitialisation des tentatives:",
+        error
+      );
     }
   }
 
@@ -333,33 +179,207 @@ class AuthService {
     if (this.currentUser) {
       return this.currentUser;
     }
-    
-    // Vérifier Firebase Auth
-    if (auth.currentUser) {
-      this.currentUser = {
-        uid: auth.currentUser.uid,
-        id: auth.currentUser.uid,
-        email: auth.currentUser.email,
-        displayName: auth.currentUser.displayName || auth.currentUser.email,
-        photoURL: auth.currentUser.photoURL || null
-      };
-      return this.currentUser;
-    }
-    
+
     // Vérifier localStorage
-    const userStr = localStorage.getItem('user');
+    const userStr = localStorage.getItem("user");
     if (userStr) {
       try {
         this.currentUser = JSON.parse(userStr);
         return this.currentUser;
       } catch (error) {
-        console.error('Erreur lors de la lecture de l\'utilisateur:', error);
-        localStorage.removeItem('user');
+        console.error("Erreur lors de la lecture de l'utilisateur:", error);
+        localStorage.removeItem("user");
         return null;
       }
     }
-    
+
     return null;
+  }
+
+  // Connexion principale (juste par email)
+  async login(email) {
+    if (!email) {
+      return {
+        success: false,
+        error: "Email requis",
+      };
+    }
+
+    // Utiliser Firestore
+    const firestoreResult = await this.loginWithFirestore(email);
+
+    if (firestoreResult.success) {
+      console.log("✅ Connexion réussie avec Firestore");
+      return firestoreResult;
+    }
+
+    // Fallback API si disponible
+    if (this.isApiEnabled()) {
+      console.log("⚠️ Firestore login échoué, tentative avec API...");
+      const apiResult = await this.loginWithAPI(email, "");
+
+      if (apiResult.success) {
+        console.log("✅ Connexion réussie avec API");
+        return apiResult;
+      }
+    }
+
+    return firestoreResult;
+  }
+
+  // Inscription principale
+  async register(email, userData = {}) {
+    if (!email) {
+      return {
+        success: false,
+        error: "Email requis",
+      };
+    }
+
+    // Valider l'email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return {
+        success: false,
+        error: "Adresse email invalide",
+      };
+    }
+
+    const firestoreResult = await this.registerWithFirestore(email, userData);
+
+    if (firestoreResult.success) {
+      console.log("✅ Inscription réussie avec Firestore");
+      return firestoreResult;
+    }
+
+    return firestoreResult;
+  }
+
+  // Déconnexion
+  async logout() {
+    try {
+      this.currentUser = null;
+      localStorage.removeItem("user");
+      localStorage.removeItem("authProvider");
+
+      console.log("✅ Déconnexion réussie");
+
+      return {
+        success: true,
+      };
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+
+      this.currentUser = null;
+      localStorage.removeItem("user");
+      localStorage.removeItem("authProvider");
+
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Reste des méthodes inchangées (adaptées)
+  async loginWithAPI(email, password) {
+    // Similaire mais sans mot de passe
+    try {
+      const response = await axios.post(
+        `${API_URL}/auth/login`,
+        {
+          email,
+          // Pas de mot de passe
+        },
+        {
+          timeout: 5000,
+        }
+      );
+
+      if (response.data.token) {
+        this.currentUser = {
+          uid: response.data.user?.id || response.data.userId,
+          id: response.data.user?.id || response.data.userId,
+          email: response.data.user?.email || email,
+          role: response.data.user?.role || "user",
+        };
+
+        localStorage.setItem("user", JSON.stringify(this.currentUser));
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("authProvider", "api");
+      }
+
+      return {
+        success: true,
+        user: this.currentUser,
+        token: response.data.token,
+      };
+    } catch (error) {
+      const isNet = this.isNetworkError(error);
+      return {
+        success: false,
+        error: isNet
+          ? "API indisponible"
+          : error.response?.data?.message || "Erreur de connexion",
+      };
+    }
+  }
+
+  // Dans authService.js, ajoutez :
+  isMobilePlatform() {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    return /android|iphone|ipad|ipod/i.test(userAgent.toLowerCase());
+  }
+
+  // Modifiez la méthode login pour mieux gérer les erreurs
+  async login(email) {
+    if (!email) {
+      return {
+        success: false,
+        error: "Email requis",
+      };
+    }
+
+    // Debug info
+    console.log("📱 Platform:", this.isMobilePlatform() ? "Mobile" : "Desktop");
+    console.log("📧 Email:", email);
+
+    try {
+      // Essayer Firestore d'abord
+      const firestoreResult = await this.loginWithFirestore(email);
+
+      if (firestoreResult.success) {
+        console.log("✅ Connexion réussie avec Firestore");
+        return firestoreResult;
+      }
+
+      // Si mobile, on peut avoir des problèmes de réseau
+      if (this.isMobilePlatform()) {
+        console.log("📱 Mode mobile détecté - vérification réseau");
+
+        // Vérifier la connectivité
+        const isOnline = navigator.onLine;
+        if (!isOnline) {
+          return {
+            success: false,
+            error: "Pas de connexion internet. Vérifiez votre réseau.",
+          };
+        }
+      }
+
+      return {
+        success: false,
+        error: firestoreResult.error || "Email non reconnu",
+      };
+    } catch (error) {
+      console.error("❌ Erreur de connexion:", error);
+      return {
+        success: false,
+        error: this.isMobilePlatform()
+          ? "Problème de connexion au serveur. Vérifiez votre réseau."
+          : "Erreur lors de la connexion",
+      };
+    }
   }
 
   // Vérifier si l'utilisateur est connecté
@@ -367,56 +387,33 @@ class AuthService {
     return this.getCurrentUser() !== null;
   }
 
-  // Obtenir le token (pour les requêtes API)
-  getToken() {
-    return localStorage.getItem('token');
+  // Obtenir le rôle
+  getUserRole() {
+    return this.currentUser?.role || "user";
   }
 
-  // Obtenir le provider d'authentification actuel
+  isManager() {
+    return this.getUserRole() === "manager";
+  }
+
+  // Reste des méthodes utilitaires inchangées...
   getAuthProvider() {
-    return localStorage.getItem('authProvider') || 'unknown';
-  }
-
-  // Messages d'erreur Firebase en français
-  getErrorMessage(errorCode) {
-    const errorMessages = {
-      'auth/email-already-in-use': 'Cette adresse email est déjà utilisée',
-      'auth/invalid-email': 'Adresse email invalide',
-      'auth/operation-not-allowed': 'Opération non autorisée',
-      'auth/weak-password': 'Le mot de passe doit contenir au moins 6 caractères',
-      'auth/user-disabled': 'Ce compte a été désactivé',
-      'auth/user-not-found': 'Aucun compte trouvé avec cette adresse email',
-      'auth/wrong-password': 'Mot de passe incorrect',
-      'auth/too-many-requests': 'Trop de tentatives. Veuillez réessayer plus tard',
-      'auth/network-request-failed': 'Erreur de connexion. Vérifiez votre connexion internet',
-      'auth/invalid-credential': 'Identifiants invalides',
-      'auth/invalid-login-credentials': 'Email ou mot de passe incorrect'
-    };
-    
-    return errorMessages[errorCode] || 'Une erreur est survenue. Veuillez réessayer.';
-  }
-
-  // Configuration des headers pour les requêtes API
-  getAxiosConfig() {
-    const token = this.getToken();
-    if (token) {
-      return {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      };
-    }
-    return {};
+    return localStorage.getItem("authProvider") || "unknown";
   }
 
   isApiEnabled() {
     try {
       const apiHost = new URL(API_URL).hostname;
-      const isLocalApi = ["localhost", "127.0.0.1", "10.0.2.2"].includes(apiHost);
+      const isLocalApi = ["localhost", "127.0.0.1", "10.0.2.2"].includes(
+        apiHost
+      );
       const appHost = window?.location?.hostname;
 
-      if (isLocalApi && appHost && !["localhost", "127.0.0.1"].includes(appHost)) {
+      if (
+        isLocalApi &&
+        appHost &&
+        !["localhost", "127.0.0.1"].includes(appHost)
+      ) {
         return false;
       }
       return true;
@@ -430,8 +427,7 @@ class AuthService {
       !error.response &&
       (error.code === "ERR_NETWORK" ||
         error.code === "ECONNABORTED" ||
-        String(error.message || "").includes("Network Error") ||
-        String(error.message || "").includes("ERR_CONNECTION_REFUSED"))
+        String(error.message || "").includes("Network Error"))
     );
   }
 }

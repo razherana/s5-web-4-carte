@@ -262,19 +262,19 @@ export default {
 
               newMarkers.push(marker);
               addedCount++;
-              console.log(`✅ Marqueur ajouté pour ${report.id}`);
+              console.log(`Marqueur ajouté pour ${report.id}`);
             } catch (error) {
-              console.error(`❌ Erreur ajout marqueur ${report.id}:`, error);
+              console.error(`Erreur ajout marqueur ${report.id}:`, error);
             }
           } else {
-            console.warn(`⚠️ Signalement ${report.id} sans coordonnées`);
+            console.warn(`Signalement ${report.id} sans coordonnées`);
           }
         }
 
         markers.value = newMarkers;
-        console.log(`✅ ${addedCount} marqueurs ajoutés sur ${props.reports.length} signalements`);
+        console.log(`${addedCount} marqueurs ajoutés sur ${props.reports.length} signalements`);
       } catch (error) {
-        console.error("❌ Erreur lors de la mise à jour des marqueurs:", error);
+        console.error("Erreur lors de la mise à jour des marqueurs:", error);
       } finally {
         isUpdatingMarkers.value = false;
       }
@@ -456,9 +456,9 @@ export default {
 
           mapDestroyed.value = true;
           mapInitialized.value = false;
-          console.log("✅ Carte nettoyée");
+          console.log("Carte nettoyée");
         } catch (error) {
-          console.error("❌ Erreur lors du nettoyage de la carte:", error);
+          console.error("Erreur lors du nettoyage de la carte:", error);
         }
       }
     };
@@ -508,7 +508,7 @@ export default {
         if (map.value && mapInitialized.value && !mapDestroyed.value) {
           updateMarkers();
         } else {
-          console.log("⚠️ Carte pas prête pour la mise à jour");
+          console.log("Carte pas prête pour la mise à jour");
         }
       },
       { deep: true, immediate: false }

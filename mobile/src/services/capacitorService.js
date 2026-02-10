@@ -5,14 +5,15 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 
 class CapacitorService {
   constructor() {
-    // this.isNative = window.Capacitor && window.Capacitor.isNativePlatform;
-    this.isNative = false;
+    // ✅ CORRECTION: Détecter correctement la plateforme native
+    this.isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    console.log('📱 CapacitorService initialized - isNative:', this.isNative);
+    console.log('🔍 Platform:', window.Capacitor?.getPlatform());
   }
 
   // Vérifier si on est sur une plateforme native
   isNativePlatform() {
-    // return this.isNative;
-    return false;
+    return this.isNative;
   }
 
   // === CAMERA ===
@@ -261,6 +262,8 @@ class CapacitorService {
         return { success: false, error: 'Non disponible sur web' };
       }
 
+      console.log('📱 Configuration des notifications push natives...');
+
       // Demander la permission
       let permission = await PushNotifications.checkPermissions();
       
@@ -276,30 +279,31 @@ class CapacitorService {
 
       // Écouter l'inscription
       PushNotifications.addListener('registration', (token) => {
-        console.log('Token push enregistré:', token.value);
+        console.log('📱 Token push enregistré:', token.value);
         localStorage.setItem('pushToken', token.value);
       });
 
       // Écouter les erreurs
       PushNotifications.addListener('registrationError', (error) => {
-        console.error('Erreur enregistrement push:', error);
+        console.error('❌ Erreur enregistrement push:', error);
       });
 
       // Écouter les notifications reçues
       PushNotifications.addListener('pushNotificationReceived', (notification) => {
-        console.log('Notification reçue:', notification);
+        console.log('📱 Notification reçue:', notification);
         this.handlePushNotification(notification);
       });
 
       // Écouter les clics sur les notifications
       PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
-        console.log('Notification cliquée:', notification);
+        console.log('📱 Notification cliquée:', notification);
         this.handleNotificationClick(notification);
       });
 
+      console.log('✅ Notifications push configurées');
       return { success: true };
     } catch (error) {
-      console.error('Erreur configuration push:', error);
+      console.error('❌ Erreur configuration push:', error);
       return { success: false, error: error.message };
     }
   }

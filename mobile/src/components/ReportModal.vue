@@ -601,7 +601,7 @@ export default {
 
           if (!imageResult.success) {
             console.warn(
-              "⚠️ Erreur lors de la sauvegarde des images:",
+              "Erreur lors de la sauvegarde des images:",
               imageResult.error
             );
             showToast(

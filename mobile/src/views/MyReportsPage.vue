@@ -60,7 +60,7 @@
             </div>
             <div class="stat-card glass">
               <span>En cours</span>
-              <strong>{{ statusCount.enCours }}</strong>
+              <strong>{{ statusCount.en_cours }}</strong> <!-- CHANGEMENT ICI -->
             </div>
             <div class="stat-card glass">
               <span>Terminé</span>
@@ -243,25 +243,46 @@ export default {
 
     const loadMyReports = async () => {
       loading.value = true;
-
+      
       try {
         const currentUser = authService.getCurrentUser();
         if (!currentUser) {
           router.push('/login');
           return;
         }
-
-        const userId = currentUser.uid || currentUser.id;
-        const result = await reportService.getUserReports(userId);
-
-        if (result.success) {
-          myReports.value = result.data;
+        
+        console.log('Utilisateur connecté:', currentUser);
+        
+        // Récupérer TOUS les signalements d'abord
+        const allReportsResult = await reportService.getAllReports();
+        
+        if (allReportsResult.success) {
+          // Filtrer pour n'avoir que ceux de l'utilisateur actuel
+          const filteredReports = allReportsResult.data.filter(report => {
+            // Comparer avec l'ID utilisateur actuel
+            const matches = report.userId === currentUser.id || 
+                           report.userId === currentUser.uid ||
+                           report.user_email === currentUser.email;
+            
+            console.log(`Signalement ${report.id}:`, {
+              reportUserId: report.userId,
+              reportUserEmail: report.user_email,
+              currentUserId: currentUser.id,
+              currentUserUid: currentUser.uid,
+              currentUserEmail: currentUser.email,
+              matches
+            });
+            
+            return matches;
+          });
+          
+          myReports.value = filteredReports;
+          console.log(`${filteredReports.length} signalements trouvés pour l'utilisateur`);
         } else {
-          showAlert('Erreur', 'Impossible de charger vos signalements');
+          console.error('Erreur lors du chargement des signalements');
         }
       } catch (error) {
         console.error('Erreur:', error);
-        showAlert('Erreur', "Une erreur s'est produite lors du chargement");
       } finally {
         loading.value = false;
       }
@@ -478,6 +499,7 @@ export default {
 
 .stat-card strong {
   font-size: 1.4rem;
+  color: var(--app-text-tertiary);
 }
 
 .reports-list {

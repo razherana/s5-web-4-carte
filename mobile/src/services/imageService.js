@@ -88,7 +88,7 @@ class ImageService {
 
       const docRef = await addDoc(collection(db, 'images'), imageDoc);
       
-      console.log(`✅ Image ${index} sauvegardée pour le signalement ${reportId}`);
+      console.log(`Image ${index} sauvegardée pour le signalement ${reportId}`);
       
       return {
         success: true,
@@ -97,7 +97,7 @@ class ImageService {
         size: compressedBlob.size
       };
     } catch (error) {
-      console.error('❌ Erreur sauvegarde image:', error);
+      console.error('Erreur sauvegarde image:', error);
       return {
         success: false,
         error: error.message
@@ -108,7 +108,7 @@ class ImageService {
   // Récupérer toutes les images d'un signalement
   async getReportImages(reportId) {
     try {
-      console.log(`🔍 Récupération des images pour le signalement: ${reportId}`);
+      console.log(`Récupération des images pour le signalement: ${reportId}`);
       
       const q = query(
         collection(db, 'images'),
@@ -120,7 +120,7 @@ class ImageService {
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        console.log(`📄 Document trouvé pour image:`, doc.id, data);
+        console.log(`Document trouvé pour image:`, doc.id, data);
         
         if (data.image_data) {
           images.push({
@@ -136,14 +136,14 @@ class ImageService {
       // Trier par index
       images.sort((a, b) => a.index - b.index);
       
-      console.log(`📸 ${images.length} image(s) récupérée(s) pour le signalement ${reportId}`);
+      console.log(`${images.length} image(s) récupérée(s) pour le signalement ${reportId}`);
       
       return {
         success: true,
         images: images
       };
     } catch (error) {
-      console.error('❌ Erreur récupération images:', error);
+      console.error('Erreur récupération images:', error);
       return {
         success: false,
         error: error.message,
@@ -155,7 +155,7 @@ class ImageService {
   // Sauvegarder plusieurs images pour un signalement
   async saveMultipleImages(files, reportId, userId) {
     try {
-      console.log(`💾 Sauvegarde de ${files.length} image(s) pour le signalement ${reportId}`);
+      console.log(`Sauvegarde de ${files.length} image(s) pour le signalement ${reportId}`);
       
       const results = [];
       
@@ -166,7 +166,7 @@ class ImageService {
       
       const successful = results.filter(r => r.success).length;
       
-      console.log(`✅ ${successful}/${files.length} image(s) sauvegardée(s) avec succès`);
+      console.log(`${successful}/${files.length} image(s) sauvegardée(s) avec succès`);
       
       return {
         success: true,
@@ -175,7 +175,7 @@ class ImageService {
         successful: successful
       };
     } catch (error) {
-      console.error('❌ Erreur sauvegarde multiple images:', error);
+      console.error('Erreur sauvegarde multiple images:', error);
       return {
         success: false,
         error: error.message

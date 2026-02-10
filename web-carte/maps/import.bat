@@ -30,6 +30,22 @@ if exist "%DATA_DIR%\antananarivo.osm.pbf" if exist "%DATA_DIR%\madagascar-26011
   echo     Gardez seulement antananarivo.osm.pbf pour un import cible.
 )
 
+rem Augmenter les timeouts Docker (reseau lent)
+set "COMPOSE_HTTP_TIMEOUT=600"
+set "DOCKER_CLIENT_TIMEOUT=600"
+
+rem Preflight: verifier l'acces aux sources externes (evite un blocage silencieux)
+set "WATER_URL=https://osmdata.openstreetmap.de/download/water-polygons-split-3857.zip"
+set "SIMPLIFIED_URL=https://osmdata.openstreetmap.de/download/simplified-water-polygons-split-3857.zip"
+for %%U in ("%WATER_URL%" "%SIMPLIFIED_URL%") do (
+  powershell -NoProfile -Command "try { iwr -Method Head -Uri '%%~U' -TimeoutSec 15 | Out-Null; exit 0 } catch { exit 1 }"
+  if errorlevel 1 (
+    echo ❌ Acces impossible a %%~U
+    echo    Verifiez proxy/pare-feu/DNS avant l'import.
+    exit /b 1
+  )
+)
+
 rem Copier vers le nom attendu par le serveur
 echo 🧩 Preparation du fichier region.osm.pbf...
 set "REGION_FILE=%DATA_DIR%\region.osm.pbf"

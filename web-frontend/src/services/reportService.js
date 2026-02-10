@@ -84,6 +84,7 @@ export const reportService = {
 
   /**
    * Calculate statistics from a list of reports
+   * Uses the `synced` field (synced | created | updated | deleted)
    * @param {Array} reports - Array of report objects
    * @returns {object} Statistics object
    */
@@ -92,22 +93,24 @@ export const reportService = {
     const totalSurface = reports.reduce((sum, r) => sum + (parseFloat(r.surface) || 0), 0);
     const totalBudget = reports.reduce((sum, r) => sum + (parseFloat(r.budget) || 0), 0);
     
-    const completedReports = reports.filter(r => r.status === 'completed').length;
-    const inProgressReports = reports.filter(r => r.status === 'in_progress').length;
-    const newReports = reports.filter(r => r.status === 'new').length;
+    const syncedReports = reports.filter(r => r.synced === 'synced').length;
+    const createdReports = reports.filter(r => r.synced === 'created').length;
+    const updatedReports = reports.filter(r => r.synced === 'updated').length;
+    const deletedReports = reports.filter(r => r.synced === 'deleted').length;
     
-    const progressPercentage = totalReports > 0 
-      ? ((completedReports / totalReports) * 100).toFixed(1)
+    const syncPercentage = totalReports > 0 
+      ? ((syncedReports / totalReports) * 100).toFixed(1)
       : 0;
 
     return {
       totalReports,
       totalSurface: totalSurface.toFixed(2),
       totalBudget: totalBudget.toFixed(2),
-      completedReports,
-      inProgressReports,
-      newReports,
-      progressPercentage,
+      syncedReports,
+      createdReports,
+      updatedReports,
+      deletedReports,
+      syncPercentage,
     };
   },
 };

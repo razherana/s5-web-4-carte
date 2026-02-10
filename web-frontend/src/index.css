@@ -312,18 +312,23 @@ body::before {
   }
 }
 
-/* Status Colors */
-.status-new {
+/* Sync State Colors */
+.status-synced {
+  color: var(--success);
+  background: rgba(22, 163, 74, 0.14);
+}
+
+.status-created {
   color: var(--info);
   background: rgba(37, 99, 235, 0.12);
 }
 
-.status-in-progress {
+.status-updated {
   color: var(--warning);
   background: rgba(245, 158, 11, 0.14);
 }
 
-.status-completed {
-  color: var(--success);
-  background: rgba(22, 163, 74, 0.14);
+.status-deleted {
+  color: var(--danger);
+  background: rgba(220, 38, 38, 0.14);
 }

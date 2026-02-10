@@ -284,6 +284,16 @@ const ReportsPage = () => {
                       Surface (m²) <SortIcon field="surface" />
                     </div>
                   </th>
+                  <th onClick={() => handleSort("niveau")}>
+                    <div className="sortable-th">
+                      Niveau <SortIcon field="niveau" />
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort("prix_par_m2")}>
+                    <div className="sortable-th">
+                      Prix/m² (Ar) <SortIcon field="prix_par_m2" />
+                    </div>
+                  </th>
                   <th onClick={() => handleSort("budget")}>
                     <div className="sortable-th">
                       Budget (Ar) <SortIcon field="budget" />
@@ -320,6 +330,12 @@ const ReportsPage = () => {
                         <td>
                           {report.surface
                             ? `${parseFloat(report.surface).toLocaleString()}`
+                            : "N/A"}
+                        </td>
+                        <td>{report.niveau ?? 1}/10</td>
+                        <td>
+                          {report.prix_par_m2
+                            ? `${parseFloat(report.prix_par_m2).toLocaleString()}`
                             : "N/A"}
                         </td>
                         <td>
@@ -384,7 +400,7 @@ const ReportsPage = () => {
                       </tr>
                       {statusChangeRow === reportKey && (
                         <tr className="status-change-row">
-                          <td colSpan="10">
+                          <td colSpan="12">
                             <div className="status-change-inline-form">
                               <div className="status-change-inline-field">
                                 <label>Statut</label>

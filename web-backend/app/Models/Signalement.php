@@ -23,7 +23,8 @@ class Signalement extends Model
         'lng',
         'date_signalement',
         'surface',
-        'budget',
+        'niveau',
+        'prix_par_m2',
         'entreprise_id',
         'status',
         'notes',
@@ -48,8 +49,24 @@ class Signalement extends Model
             'lat' => 'decimal:8',
             'lng' => 'decimal:8',
             'surface' => 'decimal:2',
-            'budget' => 'decimal:2',
+            'niveau' => 'integer',
+            'prix_par_m2' => 'decimal:2',
         ];
+    }
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var list<string>
+     */
+    protected $appends = ['budget'];
+
+    /**
+     * Get the computed budget: prix_par_m2 * niveau * surface.
+     */
+    public function getBudgetAttribute(): float
+    {
+        return round((float) $this->prix_par_m2 * (int) $this->niveau * (float) $this->surface, 2);
     }
 
     /**

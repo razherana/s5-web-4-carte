@@ -93,6 +93,8 @@ class StatusHistoryController extends Controller
                     'lng' => (float) $signalement->lng,
                     'date_signalement' => $signalement->date_signalement,
                     'surface' => (float) $signalement->surface,
+                    'niveau' => (int) $signalement->niveau,
+                    'prix_par_m2' => (float) $signalement->prix_par_m2,
                     'budget' => (float) $signalement->budget,
                     'entreprise_id' => $signalement->entreprise_id,
                     'entreprise' => $signalement->entreprise ? [

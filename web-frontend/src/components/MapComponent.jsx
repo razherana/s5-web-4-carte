@@ -274,6 +274,19 @@ const MapComponent = ({
                 />
               </div>
 
+              <div className="detail-grid-2">
+                <DetailRow
+                  icon={Ruler}
+                  label="Niveau"
+                  value={`${selectedReport.niveau ?? 1}/10`}
+                />
+                <DetailRow
+                  icon={Wallet}
+                  label="Prix/m²"
+                  value={`${parseFloat(selectedReport.prix_par_m2 ?? 0).toLocaleString()} Ar`}
+                />
+              </div>
+
               {selectedReport.entreprise?.name && (
                 <DetailRow
                   icon={Building2}

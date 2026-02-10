@@ -36,6 +36,8 @@ class SyncController extends Controller
             'lng' => (float) $signalement->lng,
             'date_signalement' => $signalement->date_signalement,
             'surface' => (float) $signalement->surface,
+            'niveau' => (int) $signalement->niveau,
+            'prix_par_m2' => (float) $signalement->prix_par_m2,
             'budget' => (float) $signalement->budget,
             'entreprise_id' => $signalement->entreprise_id,
             'entreprise' => $signalement->entreprise ? [
@@ -350,7 +352,8 @@ class SyncController extends Controller
                         'lng' => $data['lng'] ?? 0,
                         'date_signalement' => $data['date_signalement'] ?? now()->toDateString(),
                         'surface' => $data['surface'] ?? 0,
-                        'budget' => $data['budget'] ?? 0,
+                        'niveau' => $data['niveau'] ?? 1,
+                        'prix_par_m2' => $data['prix_par_m2'] ?? 0,
                         'entreprise_id' => $entreprise?->id,
                         'status' => $data['status'] ?? 'pending',
                         'notes' => $data['notes'] ?? null,

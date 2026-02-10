@@ -11,7 +11,8 @@ const EditReportPage = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     surface: '',
-    budget: '',
+    niveau: '1',
+    prix_par_m2: '',
     entreprise_name: '',
     date_signalement: '',
     notes: '',
@@ -30,7 +31,8 @@ const EditReportPage = () => {
       const report = location.state.report;
       setFormData({
         surface: report.surface || '',
-        budget: report.budget || '',
+        niveau: report.niveau || '1',
+        prix_par_m2: report.prix_par_m2 || '',
         entreprise_name: report.entreprise?.name || '',
         date_signalement: report.date_signalement || '',
         notes: report.notes || '',
@@ -156,15 +158,33 @@ const EditReportPage = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="budget" className="form-label">Budget (Ar)</label>
+              <label htmlFor="niveau" className="form-label">Niveau (1-10)</label>
               <input
                 type="number"
-                id="budget"
-                name="budget"
-                value={formData.budget}
+                id="niveau"
+                name="niveau"
+                value={formData.niveau}
                 onChange={handleChange}
                 className="glass-input"
-                placeholder="Enter budget"
+                placeholder="1-10"
+                min="1"
+                max="10"
+                step="1"
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="prix_par_m2" className="form-label">Prix par m² (Ar)</label>
+              <input
+                type="number"
+                id="prix_par_m2"
+                name="prix_par_m2"
+                value={formData.prix_par_m2}
+                onChange={handleChange}
+                className="glass-input"
+                placeholder="Enter price per m²"
                 step="0.01"
                 min="0"
                 required
@@ -214,6 +234,24 @@ const EditReportPage = () => {
               />
             </div>
           </div>
+
+          {/* Computed Budget Display */}
+          {formData.surface && formData.niveau && formData.prix_par_m2 && (
+            <div className="budget-display glass-card">
+              <div className="budget-display-label">Budget calculé</div>
+              <div className="budget-display-value">
+                {(
+                  Number(formData.surface) *
+                  Number(formData.niveau) *
+                  Number(formData.prix_par_m2)
+                ).toLocaleString()}
+                <span className="budget-display-unit">Ar</span>
+              </div>
+              <div className="budget-display-formula">
+                {Number(formData.prix_par_m2).toFixed(2)} × {formData.niveau} × {Number(formData.surface).toFixed(2)}
+              </div>
+            </div>
+          )}
 
           {/* Status History Timeline */}
           <div className="form-group form-group-full">
@@ -296,7 +334,19 @@ const EditReportPage = () => {
               </span>
             </div>
             <div className="info-item">
-              <span className="info-label"><Wallet size={14} /> Budget</span>
+              <span className="info-label"><Wallet size={14} /> Niveau</span>
+              <span className="info-value">
+                {report?.niveau || 1}/10
+              </span>
+            </div>
+            <div className="info-item">
+              <span className="info-label"><Wallet size={14} /> Prix/m²</span>
+              <span className="info-value">
+                {report?.prix_par_m2 ? `${parseFloat(report.prix_par_m2).toLocaleString()} Ar` : 'N/A'}
+              </span>
+            </div>
+            <div className="info-item">
+              <span className="info-label"><Wallet size={14} /> Budget (calculé)</span>
               <span className="info-value">
                 {report?.budget ? `${parseFloat(report.budget).toLocaleString()} Ar` : 'N/A'}
               </span>

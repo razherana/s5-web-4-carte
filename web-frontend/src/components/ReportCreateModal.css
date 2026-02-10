@@ -59,6 +59,45 @@
   gap: 12px;
 }
 
+.budget-display {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.budget-display-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.budget-display-value {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #22c55e;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+}
+
+.budget-display-unit {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.budget-display-formula {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-family: 'Courier New', monospace;
+}
+
 .report-form-actions {
   display: flex;
   justify-content: flex-end;

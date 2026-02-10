@@ -36,7 +36,9 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'lng', type: 'number', format: 'float', example: 47.5079),
         new OA\Property(property: 'date_signalement', type: 'string', example: '2026-01-20'),
         new OA\Property(property: 'surface', type: 'number', format: 'float', example: 150.50),
-        new OA\Property(property: 'budget', type: 'number', format: 'float', example: 5000.00),
+        new OA\Property(property: 'niveau', type: 'integer', example: 5, description: 'Level from 1 to 10'),
+        new OA\Property(property: 'prix_par_m2', type: 'number', format: 'float', example: 50.00, description: 'Price per square meter'),
+        new OA\Property(property: 'budget', type: 'number', format: 'float', example: 37625.00, description: 'Computed: prix_par_m2 * niveau * surface'),
         new OA\Property(property: 'entreprise_id', type: 'integer', example: 1),
         new OA\Property(
             property: 'entreprise',
@@ -306,13 +308,14 @@ class SignalementController extends Controller
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['lat', 'lng', 'date_signalement', 'surface', 'budget', 'entreprise_name'],
+                required: ['lat', 'lng', 'date_signalement', 'surface', 'niveau', 'prix_par_m2', 'entreprise_name'],
                 properties: [
                     new OA\Property(property: 'lat', type: 'number', format: 'float', example: -18.8792),
                     new OA\Property(property: 'lng', type: 'number', format: 'float', example: 47.5079),
                     new OA\Property(property: 'date_signalement', type: 'string', example: '2026-01-20'),
                     new OA\Property(property: 'surface', type: 'number', format: 'float', example: 150.50),
-                    new OA\Property(property: 'budget', type: 'number', format: 'float', example: 5000.00),
+                    new OA\Property(property: 'niveau', type: 'integer', example: 5),
+                    new OA\Property(property: 'prix_par_m2', type: 'number', format: 'float', example: 50.00),
                     new OA\Property(property: 'entreprise_name', type: 'string', example: 'AFW')
                 ]
             )
@@ -348,7 +351,8 @@ class SignalementController extends Controller
             'lng' => 'required|numeric|between:-180,180',
             'date_signalement' => 'required|string',
             'surface' => 'required|numeric|min:0',
-            'budget' => 'required|numeric|min:0',
+            'niveau' => 'required|integer|between:1,10',
+            'prix_par_m2' => 'required|numeric|min:0',
             'entreprise_name' => 'required_without:entreprise_id|string|min:1',
             'entreprise_id' => 'required_without:entreprise_name|exists:entreprises,id',
             'status' => 'sometimes|string|in:pending,in_progress,resolved,rejected',
@@ -384,7 +388,9 @@ class SignalementController extends Controller
                     'lng' => (float) $validated['lng'],
                     'date_signalement' => $validated['date_signalement'],
                     'surface' => (float) $validated['surface'],
-                    'budget' => (float) $validated['budget'],
+                    'niveau' => (int) $validated['niveau'],
+                    'prix_par_m2' => (float) $validated['prix_par_m2'],
+                    'budget' => round((float) $validated['prix_par_m2'] * (int) $validated['niveau'] * (float) $validated['surface'], 2),
                     'entreprise_id' => $entreprise->id,
                     'entreprise' => [
                         'name' => $entreprise->name,
@@ -410,7 +416,8 @@ class SignalementController extends Controller
             'lng' => $validated['lng'],
             'date_signalement' => $validated['date_signalement'],
             'surface' => $validated['surface'],
-            'budget' => $validated['budget'],
+            'niveau' => $validated['niveau'],
+            'prix_par_m2' => $validated['prix_par_m2'],
             'entreprise_id' => $entreprise->id,
             'status' => $validated['status'] ?? 'pending',
             'notes' => $validated['notes'] ?? null,
@@ -423,7 +430,7 @@ class SignalementController extends Controller
         SignalementStatusHistory::create([
             'signalement_id' => $signalement->id,
             'status' => $signalement->status ?? 'pending',
-            'changed_at' => now(),
+            'changed_at' => $signalement->date_signalement ?? now(),
             'notes' => 'Initial status',
         ]);
 
@@ -456,7 +463,8 @@ class SignalementController extends Controller
                     new OA\Property(property: 'lng', type: 'number', format: 'float', example: 47.5079),
                     new OA\Property(property: 'date_signalement', type: 'string', example: '2026-01-20'),
                     new OA\Property(property: 'surface', type: 'number', format: 'float', example: 150.50),
-                    new OA\Property(property: 'budget', type: 'number', format: 'float', example: 5000.00),
+                    new OA\Property(property: 'niveau', type: 'integer', example: 5),
+                    new OA\Property(property: 'prix_par_m2', type: 'number', format: 'float', example: 50.00),
                     new OA\Property(property: 'entreprise_name', type: 'string', example: 'AFW')
                 ]
             )
@@ -505,7 +513,8 @@ class SignalementController extends Controller
             'lng' => 'sometimes|numeric|between:-180,180',
             'date_signalement' => 'sometimes|string',
             'surface' => 'sometimes|numeric|min:0',
-            'budget' => 'sometimes|numeric|min:0',
+            'niveau' => 'sometimes|integer|between:1,10',
+            'prix_par_m2' => 'sometimes|numeric|min:0',
             'entreprise_name' => 'sometimes|string|min:1',
             'entreprise_id' => 'sometimes|exists:entreprises,id',
             'status' => 'sometimes|string|in:pending,in_progress,resolved,rejected',
@@ -536,7 +545,8 @@ class SignalementController extends Controller
                 if (isset($validated['lng'])) $updateData['lng'] = (float) $validated['lng'];
                 if (isset($validated['date_signalement'])) $updateData['date_signalement'] = $validated['date_signalement'];
                 if (isset($validated['surface'])) $updateData['surface'] = (float) $validated['surface'];
-                if (isset($validated['budget'])) $updateData['budget'] = (float) $validated['budget'];
+                if (isset($validated['niveau'])) $updateData['niveau'] = (int) $validated['niveau'];
+                if (isset($validated['prix_par_m2'])) $updateData['prix_par_m2'] = (float) $validated['prix_par_m2'];
                 if (isset($validated['entreprise_id'])) {
                     $updateData['entreprise_id'] = $validated['entreprise_id'];
                 }
@@ -845,6 +855,8 @@ class SignalementController extends Controller
             'lng' => (float) $signalement->lng,
             'date_signalement' => $signalement->date_signalement,
             'surface' => (float) $signalement->surface,
+            'niveau' => (int) $signalement->niveau,
+            'prix_par_m2' => (float) $signalement->prix_par_m2,
             'budget' => (float) $signalement->budget,
             'entreprise_id' => $signalement->entreprise_id,
             'entreprise' => $signalement->entreprise ? [

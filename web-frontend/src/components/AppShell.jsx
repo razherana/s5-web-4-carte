@@ -86,14 +86,6 @@ const AppShell = ({ title, subtitle, actions, children }) => {
               </NavLink>
             ))}
           </div>
-
-          <div className="nav-section">
-            <span className="nav-section-title">Preferences</span>
-            <button className="sidebar-link ghost" type="button">
-              <span className="sidebar-icon"><Settings size={18} /></span>
-              <span>Appearance</span>
-            </button>
-          </div>
         </nav>
 
         <div className="sidebar-footer glass-card">

@@ -37,9 +37,15 @@ fi
 echo "🧩 Préparation du fichier region.osm.pbf..."
 cp -f "$DATA_FILE" ./data/region.osm.pbf
 
+cd ../../ || exit 1
+
 # Lancer l'import en mode dédié
 echo "🚀 Lancement de l'import (cela peut prendre du temps)..."
-docker compose run --rm osm-tileserver import
+docker compose 
+
+# Démarrer le serveur de tuiles
+echo "🧭 Démarrage du serveur de tuiles..."
+docker compose up -d tileserver
 
 echo ""
 echo "✅ Serveur démarré !"

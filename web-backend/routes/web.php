@@ -28,7 +28,7 @@ Route::middleware('auth.firebase')->prefix('api/auth')->group(function () {
 });
 
 // Signalements routes (protected)
-Route::middleware('auth.firebase')->prefix('api')->group(function () {
+Route::prefix('api')->group(function () {
     Route::get('/signalements', [SignalementController::class, 'index']);
     Route::get('/signalements/{id}', [SignalementController::class, 'show']);
     Route::post('/signalements', [SignalementController::class, 'store']);

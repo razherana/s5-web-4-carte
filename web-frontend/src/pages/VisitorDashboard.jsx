@@ -91,13 +91,6 @@ const VisitorDashboard = () => {
           </div>
         </section>
 
-        <section className="dashboard-row">
-          <div className="dashboard-column">
-            <StatsCard reports={reports} />
-            <AvancementCard reports={reports} />
-          </div>
-        </section>
-
         <section className="dashboard-map glass-card">
           <div className="section-header">
             <h2 className="section-title">Reports Map</h2>

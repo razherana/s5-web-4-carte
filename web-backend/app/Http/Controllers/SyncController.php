@@ -261,7 +261,7 @@ class SyncController extends Controller
             $signalements = Signalement::whereIn('synced', ['created', 'updated', 'deleted'])->get();
             foreach ($signalements as $signalement) {
                 try {
-                    $docRef = $firestore->collection('signalements')->document($signalement->firebase_uid);
+                    $docRef = $firestore->collection('reporting')->document($signalement->firebase_uid);
 
                     switch ($signalement->synced) {
                         case 'created':
@@ -328,7 +328,7 @@ class SyncController extends Controller
             ];
 
             // Pull signalements from Firestore
-            $documents = $firestore->collection('signalements')->documents();
+            $documents = $firestore->collection('reporting')->documents();
             foreach ($documents as $document) {
                 if (!$document->exists()) continue;
 
